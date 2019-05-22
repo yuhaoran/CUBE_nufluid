@@ -1,0 +1,16 @@
+all: forcepower.x
+
+forcepower.x: parameters.o variables.o pencil_fft.o powerspectrum.o forcepower.o
+	$(FC) $(XFLAG) $(OPTIONS) $^ -o $@ $(FFTFLAG)
+
+variables.o: parameters.o
+parameters.o: ../main/parameters.f90
+	$(FC) $(OFLAG) $(OPTIONS) $<
+variables.o: ../main/variables.f90 parameters.o
+	$(FC) $(OFLAG) $(OPTIONS) $<
+pencil_fft.o: ../main/pencil_fft.f90 parameters.o
+	$(FC) $(OFLAG) $(OPTIONS) $< $(FFTFLAG)
+powerspectrum.o: powerspectrum.f90 parameters.o pencil_fft.o
+	$(FC) $(OFLAG) $(OPTIONS) $< $(FFTFLAG)
+forcepower.o: forcepower.f90 parameters.o variables.o pencil_fft.o powerspectrum.o
+	$(FC) $(OFLAG) $(OPTIONS) $< $(FFTFLAG)
