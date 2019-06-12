@@ -9,8 +9,12 @@ program cicpower
   use parameters
   use pencil_fft
   use powerspectrum
+  use hydrodf
   implicit none
   save
+
+  type(dfld) :: neu
+
   ! nc: coarse grid per node per dim
   ! nf: fine grid per node per dim
   real,parameter :: density_buffer=1.2
@@ -195,12 +199,38 @@ program cicpower
   open(15,file=output_dir()//'delta_L'//output_suffix(),status='old',access='stream')
   read(15) rho_nu
   close(15)
+
+  !Read in neutrinos
+  if (sum(f_neu).gt.0) then
+     if (head) write(*,*) 'computing neu density'
+     call neu%restart(output_name('neu'))
+     do k=1,ng
+     do j=1,ng
+     do i=1,ng
+        dx1(1)=(i-0.5)*hg_nf/ng
+        dx1(2)=(j-0.5)*hg_nf/ng
+        dx1(3)=(k-0.5)*hg_nf/ng
+        rho_nu(i,j,k)=neu%density(dx1)
+     end do
+     end do
+     end do
+     rho_nu=rho_nu-1.d0
+  else
+     rho_nu=0
+  end if
+
+
     call cross_power(xi,rho_c,rho_nu)
   sync all
   if (head) then
     open(15,file=output_name('cicpower'),status='replace',access='stream')
     write(15) xi
     close(15)
+
+    open(15,file='./cicpower.txt',status='replace')
+    write(15,*) xi
+    close(15)
+
   endif
   sync all
 

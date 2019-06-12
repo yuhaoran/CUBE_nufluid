@@ -22,7 +22,7 @@ lpt1.x: parameters.o lpt1.o
 	$(FC) $(XFLAG_NO_OMP) $(OPTIONS) $^ -o $@ $(FFTFLAG)
 dsp.x: parameters.o pencil_fft.o powerspectrum.o displacement.o
 	$(FC) $(XFLAG) $(OPTIONS) $^ -o $@ $(FFTFLAG)
-cicpower.x: parameters.o variables.o pencil_fft.o powerspectrum.o cicpower.o
+cicpower.x: parameters.o variables.o pencil_fft.o powerspectrum.o cicpower.o hydrodf.o hydrogr.o hydro3d.o hydro1d.o
 	$(FC) $(XFLAG) $(OPTIONS) $^ -o $@ $(FFTFLAG)
 cicrsd.x: parameters.o cicrsd.o
 	$(FC) $(XFLAG) $(OPTIONS) $^ -o $@
@@ -45,7 +45,15 @@ variables.o: parameters.o
 
 parameters.o: ../main/parameters.f90
 	$(FC) $(OFLAG) $(OPTIONS) $<
-variables.o: ../main/variables.f90 parameters.o
+hydro1d.o: ../main/hydro1d.f90
+	$(FC) $(OFLAG) $(OPTIONS) $<
+hydro3d.o: ../main/hydro3d.f90 hydro1d.o
+	$(FC) $(OFLAG) $(OPTIONS) $<
+hydrogr.o: ../main/hydrogr.f90 hydro3d.o
+	$(FC) $(OFLAG) $(OPTIONS) $<
+hydrodf.o: ../main/hydrodf.f90 hydrogr.o
+	$(FC) $(OFLAG) $(OPTIONS) $<
+variables.o: ../main/variables.f90 parameters.o hydrodf.o
 	$(FC) $(OFLAG) $(OPTIONS) $<
 neutrinos.o: ../main/neutrinos.f90 variables.o
 	$(FC) $(OFLAG) $(OPTIONS) $<
@@ -71,7 +79,7 @@ xva_qspace.o: xva_qspace.f90 parameters.o
 	$(FC) $(OFLAG) $(OPTIONS) $<
 correlation_qspace.o: correlation_qspace.f90 parameters.o pencil_fft.o
 	$(FC) $(OFLAG) $(OPTIONS) $< $(FFTFLAG)
-cicpower.o: cicpower.f90 parameters.o variables.o pencil_fft.o powerspectrum.o
+cicpower.o: cicpower.f90 parameters.o variables.o pencil_fft.o powerspectrum.o hydrodf.o
 	$(FC) $(OFLAG) $(OPTIONS) $< $(FFTFLAG)
 cicrsd.o: cicrsd.f90 parameters.o 
 	$(FC) $(OFLAG) $(OPTIONS) $<
