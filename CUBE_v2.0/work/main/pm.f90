@@ -5,6 +5,7 @@ subroutine particle_mesh
   use cubefft
   use pencil_fft
   use neutrinos
+  use hydrogr
   implicit none
   save
 
@@ -49,6 +50,26 @@ integer(4) t01,t02,t0rate
     ! fine_cic_mass ------------------------------------------------------------
     rho_f=0
     crho_f=0
+
+    if (neutrino_flag) then
+       if (1./a_mid-1. .gt. z_i_nu) then
+          !add homogeneous
+          rho_f=rho_f+sum(f_neu)
+       else
+          !add perturbation
+          do k=1,nfe
+          do j=1,nfe
+          do i=1,nfe
+             tempx=((/itx,ity,itz/)-1)*nt*ncell+(/i,j,k/)-nfb
+             do nu=1,Nneu
+                rho_f(i,j,k)=rho_f(i,j,k)+neu(nu)%density(tempx)*f_neu(nu)
+             end do
+          end do
+          end do
+          end do
+       end if
+    end if
+
     do ilayer=0,nlayer-1
       !$omp paralleldo default(shared) schedule(static,2)&
       !$omp& private(k,j,i,np,nzero,l,ip,tempx,idx1,idx2,dx1,dx2)
@@ -129,6 +150,23 @@ integer(4) t01,t02,t0rate
         vreal=vreal+force_f(:,idx2(1),idx2(2),idx2(3))*a_mid*dt/6/pi*dx2(1)*dx2(2)*dx2(3)
         vp(:,ip)=nint(real(nvbin-1)*atan(sqrt(pi/2)/(sigma_vi_new*vrel_boost)*vreal)/pi,kind=izipv)
       enddo
+
+      if (neutrino_flag) then
+         do kk=1,ncell
+         do jj=1,ncell
+         do ii=1,ncell
+            tempx=ncell*((/i,j,k/)-1) + ((/ii,jj,kk/))
+            idx1(:)=floor(tempx(:))+1
+            vreal=force_f(:,idx1(1),idx1(2),idx1(3))*a_mid*dt/6/pi
+            tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))
+            do nu=1,Nneu
+               call neu(nu)%gravity(tempx,vreal,a_mid)
+            end do
+         end do
+         end do
+         end do
+      end if
+
     enddo
     enddo
     enddo
@@ -153,6 +191,30 @@ integer(4) t01,t02,t0rate
   do ity=1,nnt
   do itx=1,nnt ! loop over tile
     r3t=0
+    
+    if (neutrino_flag) then
+       if (1./a_mid-1..gt.z_i_nu) then
+          r3t=r3t+sum(f_neu)
+       else
+          do k=1,nt
+          do j=1,nt
+          do i=1,nt
+             do kk=1,ncell
+             do jj=1,ncell
+             do ii=1,ncell
+                tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))
+                do nu=1,Nneu
+                   r3t(i,j,k)=r3t(i,j,k)+neu(nu)%density(tempx)*f_neu(nu)/ncell**3
+                end do
+             end do
+             end do
+             end do
+          end do
+          end do
+          end do
+       end if
+    end if
+
     do ilayer=0,nlayer-1
       !$omp paralleldo default(shared) schedule(static,2)&
       !$omp& private(k,j,i,np,nzero,l,ip,tempx,idx1,idx2,dx1,dx2)
@@ -273,6 +335,23 @@ integer(4) t01,t02,t0rate
         vmax=max(vmax,abs(vreal+vfield(:,i,j,k,itx,ity,itz)))
         vp(:,ip)=nint(real(nvbin-1)*atan(sqrt(pi/2)/(sigma_vi*vrel_boost)*vreal)/pi,kind=izipv)
       enddo
+
+      if (neutrino_flag) then
+         tempx=((/itx,ity,itz/)-1)*nt+((/i,j,k/))
+         idx1(:)=floor(tempx(:))+1
+         vreal=force_c(:,idx1(1),idx1(2),idx1(3))*a_mid*dt/6/pi
+         do kk=1,ncell
+         do jj=1,ncell
+         do ii=1,ncell
+            tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))
+            do nu=1,Nneu
+               call neu(nu)%gravity(tempx,vreal,a_mid)
+            end do
+         end do
+         end do
+         end do
+      end if
+
     enddo
     enddo
     enddo

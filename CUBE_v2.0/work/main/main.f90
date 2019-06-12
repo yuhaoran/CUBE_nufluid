@@ -11,6 +11,7 @@ program main
   use buffer_particle_subroutines
   use update_particle
   use pp_force
+  use hydrodf
   implicit none
   save
 
@@ -19,6 +20,15 @@ program main
   call buffer_grid
   call buffer_x
   call buffer_v
+
+  neutrino_flag=sum(f_neu).gt.0
+  if (neutrino_flag) then
+     if (head) hg_verb=2
+     do nu=1,Nneu
+        call neu(nu)%setup(real(5./3.,kind=h_fpp), real(Mneu(nu),kind=h_fpp),.true.)
+     end do
+  end if
+
   cur_checkpoint=cur_checkpoint+1
   cur_halofind=cur_checkpoint+1
   if (head) open(77,file=output_dir()//'vinfo'//output_suffix(),access='stream',status='replace')
@@ -27,6 +37,13 @@ program main
   DO istep=1,istep_max
     call system_clock(ttt1,t_rate)
     call timestep
+
+    if (neutrino_flag) then
+       do nu=1,Nneu
+          call neu(nu)%evolve(dt/2.,dt_neu,1,a_mid)
+       end do
+    end if
+
     call update_x
     call buffer_grid
     call buffer_x
@@ -35,10 +52,18 @@ program main
     endif
     call particle_mesh
     call buffer_v
+
+    if (neutrino_flag) then
+       do nu=1,Nneu
+          call neu(nu)%evolve(dt/2.,dt_neu,-1,a_mid)
+       end do
+    end if    
+
     if (checkpoint_step .or. halofind_step) then
       dt_old=0
       call update_x
       if (checkpoint_step) then
+         if (neutrino_flag) call neu(1)%checkpoint(output_name('neu')) !should update to write out all neu
         call checkpoint
         cur_checkpoint=cur_checkpoint+1
       endif

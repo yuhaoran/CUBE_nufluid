@@ -37,6 +37,9 @@ subroutine initialize
   call kernel_f
   call kernel_c
 
+  dt_neu=dt_max
+  neutrino_flag=sum(f_neu).gt.0
+
   t=0
   dt=0
   dt_old=0

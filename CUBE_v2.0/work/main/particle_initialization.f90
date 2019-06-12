@@ -92,10 +92,10 @@ subroutine particle_initialization
   if (head) then
     print*,'  npglobal    =', sim%npglobal
     print*,'  npglobal_nu =', sim%npglobal_nu
-    print*,'  omega_cdm   =', omega_m-omega_nu
-    print*,'  omega_nu    =', omega_nu
+    print*,'  omega_cdm   =', omega_cdm
+    print*,'  omega_nu    =', omega_neu
     print*,'  f_cdm   =', f_cdm
-    print*,'  f_nu    =', f_nu
+    print*,'  f_nu    =', f_neu
     print*,'  neutrino_flag =',neutrino_flag
     print*,'  mass_p_cdm =', sim%mass_p_cdm
     print*,'  mass_p_nu  =', sim%mass_p_nu

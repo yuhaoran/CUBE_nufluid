@@ -1,8 +1,14 @@
 module variables
   use omp_lib
   use parameters
+  use hydrodf
   implicit none
   save
+
+  !hydro
+  type(hydro) :: gas
+  type(dfld), dimension(Nneu) :: neu
+  integer :: nu,nu_t
 
   ! parameters
   integer(8),parameter :: np_image=(nc*np_nc)**3*merge(2,1,body_centered_cubic) ! average number of particles per image
@@ -19,7 +25,7 @@ module variables
 
   ! variables
   integer(8) istep
-  real dt[*],dt_old[*],dt_mid[*],dt_e
+  real dt[*],dt_old[*],dt_mid[*],dt_e,dt_neu[*],dt_gas[*]
   real a[*],da[*],a_mid[*],tau[*],t[*] ! time step
   real f2_max_fine(nnt,nnt,nnt)[*],f2_max_pp[*],f2_max_coarse[*]
 

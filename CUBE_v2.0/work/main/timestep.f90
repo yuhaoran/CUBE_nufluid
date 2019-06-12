@@ -29,7 +29,7 @@ subroutine timestep
       if (ntry>10) exit
     enddo
 
-    dt=min(dt_e,sim%dt_fine,sim%dt_coarse,sim%dt_pp,sim%dt_vmax,merge(sim%dt_vmax_nu,1000.,neutrino_flag))
+    dt=min(dt_e,sim%dt_fine,sim%dt_coarse,sim%dt_pp,sim%dt_vmax,merge(sim%dt_vmax_nu,1000.,neutrino_flag),dt_neu)
 !dt=dt/2
     call expansion(a,dt,da_1,da_2)
 
@@ -73,11 +73,14 @@ subroutine timestep
     print*, 'dt_coarse   :',sim%dt_coarse!,merge('<',' ',dt==sim%dt_coarse)
     print*, 'dt_vmax     :',sim%dt_vmax!,merge('<',' ',dt==sim%dt_vmax)
     print*, 'dt_vmax_nu  :',sim%dt_vmax_nu!,merge('<',' ',dt==sim%dt_vmax_nu)
+    print*, 'dt_neu      :',dt_neu
     print*, ''
     tau=tau+dt
     t=t+dt
     a=a+da
   endif
+
+  dt_neu=1000.
   sync all
 
   a=a[1]
