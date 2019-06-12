@@ -2,7 +2,7 @@ module parameters
   implicit none
   save
   ! output directory
-  character(*),parameter :: opath='../../output/universe1/'
+  character(*),parameter :: opath='../output/'
 
   ! simulation parameters
   integer(8),parameter :: izipx=2 ! size to store xp as
@@ -22,11 +22,11 @@ module parameters
   ! (hereafter 'number of coarse cells' = 'nc')
   ! (hereafter 'per dimension' = '/dim')
   integer(8),parameter :: nn=1 ! number of imgages (nodes) /dim
-  integer(8),parameter :: ncore=4
+  integer(8),parameter :: ncore=8
   integer(8),parameter :: n_nest=1 ! number of nested threads
   integer(8),parameter :: ncell=4 ! number of nf in each nc, /dim
-  integer(8),parameter :: nnt=2 ! number of tiles /image/dim
-  integer(8),parameter :: nc=32 ! nc/image/dim, in physical volume, >=24
+  integer(8),parameter :: nnt=4 ! number of tiles /image/dim
+  integer(8),parameter :: nc=128 ! nc/image/dim, in physical volume, >=24
   integer(8),parameter :: nt=nc/nnt ! nc/tile/dim, in physical volume, >=12
 
   integer(8),parameter :: nf=nc*ncell ! >=96
@@ -54,63 +54,55 @@ module parameters
   integer(8),parameter :: nfe=nft+2*nfb ! 96
 
   logical,parameter :: body_centered_cubic=.false.
-  integer(8),parameter :: np_nc=ncell ! number of particles / coarse cell / dim
+  integer(8),parameter :: np_nc=ncell/2 ! number of particles / coarse cell / dim
   integer, parameter :: np_nc_nu = ncell/2 ! number of neutrinos per dim per coarse cell
 
   logical,parameter :: Extended_pp_force=.false.
   real,parameter :: rsoft=0.3 ! PP softening length
   integer,parameter :: pp_range=1 ! set <=4
-  real,parameter :: image_buffer=1.5
-  real,parameter :: tile_buffer=2.5
+  real,parameter :: image_buffer=1.2
+  real,parameter :: tile_buffer=1.5
   real,parameter :: vbuf=0.9
 
   real,parameter :: pi=4*atan(1.)
 
   ! cosmological parameters
-  real,parameter :: box=50*nn  ! simulation scale /dim, in unit of Mpc/h
-  real,parameter :: s8=0.8 ! use -Dsigma_8 in initial_conditions
+  real,parameter :: box=1000*nn  ! simulation scale /dim, in unit of Mpc/h
   integer,parameter :: zdim=2 ! the dimension being the redhisft direction
 
-  real,parameter :: z_i_nu=5.0 ! initial redshift for neutrinos
+  real,parameter :: z_i_nu=10.0 ! initial redshift for neutrinos
   real,parameter :: a_i_nu=1./(1.+z_i_nu) ! initial scale factor for neutrinos
-  real,parameter :: z_tf=5 ! redshift of transfer functions
 
   ! neutrino parameters
   real, parameter :: Tcmb = 2.7255
   real, parameter :: Tcnb = (4./11.)**(1./3.)*Tcmb ! temperature for active neutrinos
 
-  integer, parameter :: Nnu = 3 ! number of massive neutrinos
-  real, dimension(Nnu), parameter :: Mnu = (/ 0.05,0.,0. /)
-  real, dimension(Nnu), parameter :: Tnu = (/ Tcnb,Tcnb,Tcnb /)
-  real, parameter :: Meff = sum( Mnu*(Tnu/Tcnb)**3. )
-
-  integer, parameter :: Nur = 0 ! number of massless neutrinos
-  real, parameter :: Tur = Tcnb ! temperature of massless neutrinos
-  real, parameter :: Neff = Nur*(Tur/Tcnb)**4.
+  integer, parameter :: Nneu = 1 ! number of unique neutrino masses
+  real, dimension(Nneu), parameter :: Mneu = (/ 0.1 /) !masses in eV
+  real, dimension(Nneu), parameter :: Tneu = (/ Tcnb /) !temp in K
+  real, dimension(Nneu), parameter :: dneu = (/ 3 /) !degeneracy = number of neutrinos with a given mass
 
   ! background parameters
-  real, parameter :: h0 = 0.72
+  real, parameter :: h0 = 0.67
 
-  real, parameter :: omega_g = 2.471*10**(-5.)/h0**2. ! photon energy
-  real, parameter :: omega_u = Nur*(7.*pi**4/180.)*Tur*(Tur/Tcnb)**3./94.1/h0**2 ! ur energy
-  real, parameter :: omega_r = omega_g+omega_u ! total radiation
+  real, parameter :: omega_cdm = 0.27+0.05 ! include baryons here
+  real, parameter :: omega_gas = 0.0 ! hydro energy
+  real, dimension(Nneu), parameter :: omega_neu = dneu*Mneu*(Tneu/Tcnb)**3/93.14/h0**2 
+  real, parameter :: omega_m = omega_cdm+omega_gas+sum(omega_neu) ! total matter
 
-  real, parameter :: omega_cdm = 0.214 ! cdm energy
-  real, parameter :: omega_bar = 0.044 ! baryon energy, goes into cdm
-  real, parameter :: omega_mhd = 0.0 ! mhd energy, evolved separately
-  real, parameter :: omega_nu = sum( Mnu*(Tnu/Tcnb)**3 )/94.1/h0**2 ! nu energy
-  real, parameter :: omega_m = omega_cdm+omega_bar+omega_mhd+omega_nu ! total matter
-  real, parameter :: f_nu=omega_nu/omega_m
-  real, parameter :: f_cdm=1-f_nu
+  real, dimension(Nneu), parameter :: f_neu=omega_neu/omega_m
+  real, parameter :: f_cdm=omega_cdm/omega_m
+  real, parameter :: f_gas=omega_gas/omega_m
 
-  !real, parameter :: omega_l = 1-omega_m-omega_r
-  real, parameter :: omega_l = 1-omega_m
+  real, parameter :: zeq=1e9!3374
+  real, parameter :: omega_r = omega_m/(1.+zeq)
+  real, parameter :: omega_l = 1-omega_m-omega_r
   real, parameter :: wde = -1 ! de equation of state
 
   ! initial conditions
   real,parameter :: f_nl=0
   real,parameter :: g_nl=0
-  real,parameter :: n_s=0.9619
+  real,parameter :: n_s=0.96
   real,parameter :: A_s=2.215e-9
   real,parameter :: k_o=0.05/h0
 

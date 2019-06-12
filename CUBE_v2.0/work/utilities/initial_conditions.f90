@@ -1,7 +1,7 @@
 !#define onehalo
 #define sigma_8
 !#define READ_SEED
-!#define READ_NOISE
+#define READ_NOISE
 !#define READ_RECO
 !#define filter_phi
 !#define force_power
@@ -26,10 +26,14 @@ program initial_conditions
   ! nyquest: Nyquest frequency
   logical,parameter :: correct_kernel=.true.
   logical,parameter :: write_potential=.true.
+  logical,parameter :: write_noise=.false.
+  logical,parameter :: write_velocity=.false.
 
 #ifdef sigma_8
-  integer(8),parameter :: nk=1000
-  real tf(7,nk)
+  real, parameter :: s8 = 0.090
+  character(len=*), parameter :: fntf = '../../tf/neutrino_tf/mnu3x100meV/mnu3x100meV_transfer_out_z10.dat'
+  integer(8),parameter :: nk=1675
+  real :: tf(13,nk)
 #else
   integer(8),parameter :: nk=132
   real tf(14,nk)
@@ -193,22 +197,16 @@ program initial_conditions
   if (head) print*,'Transfer function'
   call system_clock(t1,t_rate)
 #ifdef sigma_8
-  open(11,file='../../tf/ith2_mnu0p05_z5_tk.dat',form='formatted')
-  !open(11,file='../tf/nu100_onu3/nu100_onu3_transfer_out_z10.dat',form='formatted')
-  !open(11,file='../configs/mmh_transfer/simtransfer_bao.dat',form='formatted') ! for Xin
+  open(11,file=fntf,form='formatted')
   read(11,*) tf
   close(11)
   ! normalization
-  ! norm=2.*pi**2.*(h0/100.)**4*(h0/100./0.05)**(n_s-1) ! for Xin
   norm=1
   if (head) print*, 'Normalization factor: norm =', norm
-  !Delta^2
-  !do i=2,size(tf,dim=1)
-  !  tf(i,:)=tf(i,:)**2.0 * tf(1,:)**(3+n_s) * norm / (2.0*pi**2)
-  !enddo
-  tf(2,:)=tf(2,:)**2.0 * tf(1,:)**(3+n_s) * norm / (2.0*pi**2)
+  tf(2,:)=tf(8,:)**2.0 * tf(1,:)**(3+n_s) * norm / (2.0*pi**2)
   tf(3,:)=tf(3,:)**2.0 * tf(1,:)**(3+n_s) * norm / (2.0*pi**2)
   tf(6,:)=tf(6,:)**2.0 * tf(1,:)**(3+n_s) * norm / (2.0*pi**2)
+  tf(7,:)=tf(7,:)**2.0 * tf(1,:)**(3+n_s) * norm / (2.0*pi**2)
   !dk
   tf(4,1)=tf(1,2)/2
   do k=2,nk-1
@@ -219,13 +217,17 @@ program initial_conditions
   kmax=2*pi*sqrt(3.)*nyquest/box
   do k=1,nk
     if (tf(1,k)>kmax) exit
-    v8=v8+tf(2,k)*tophat(tf(1,k)*8)**2*tf(4,k)/tf(1,k)
+    v8=v8+tf(7,k)*tophat(tf(1,k)*8)**2*tf(4,k)/tf(1,k)
   enddo
   if (head) print*, 's8**2/v8:', v8, s8**2/v8,nyquest
-  tf(2:3,:)=tf(2:3,:)*(s8**2/v8)*Dgrow(sim%a)**2
-  !tf(2:3,:)=tf(2:3,:)*(s8**2/v8)
-  !tf(2,:)=tf(6,:)*(s8**2/v8)*DgrowRatio(z_i,z_tf)**2 ! T_cb rather than T_c
-  !tf(2:3,:)= scalar_amp*tf(2:3,:)*Dgrow(a)**2 ! for Xin
+  tf(2:3,:)=tf(2:3,:)*(s8**2/v8)*DgrowRatio(sim%z_i,sim%z_i_nu)**2
+
+  if (head) then
+     print*,'omega_neu,f_neu',omega_neu,f_neu
+     print*,'sum f_neu',sum(f_neu)
+     print*,'z_i,z_i_nu,DgrowRatio',sim%z_i,sim%z_i_nu,DgrowRatio(sim%z_i,sim%z_i_nu)
+  end if
+
   sync all
 
 #else
@@ -254,7 +256,7 @@ program initial_conditions
   allocate(rseed_all(seedsize,nn**3))
 #ifdef READ_SEED
     if (head) print*, '  Copy and read seeds from ../confings/'
-    call system('cp ../../configs/seed_'//image2str(image)//'.bin '//opath//'image'//image2str(image))
+    !call system('cp ../../configs/seed_'//image2str(image)//'.bin '//opath//'image'//image2str(image))
     open(11,file=output_dir()//'seed'//output_suffix(),status='old',access='stream')
     read(11) iseed
     close(11)
@@ -313,6 +315,15 @@ program initial_conditions
   enddo
   !$omp endparalleldo
   sync all
+
+  if (write_noise) then
+     open(11,file=output_dir()//'gaussian_noise'//output_suffix(),status='replace',access='stream')
+     write(11) r3
+     close(11)
+     print*, '  noise',int(image,1),r3(1:2,1,1)
+     sync all
+  end if
+
   call system_clock(t2,t_rate)
   if (head) print*, '  elapsed time =',real(t2-t1)/t_rate,'secs';
 
@@ -406,15 +417,8 @@ program initial_conditions
 
   if (head) print*,'  write delta_L into file'
   if (head) print*,'  growth factor Dgrow(',sim%a,') =',Dgrow(sim%a)
-print*,r3(1:4,1,1)
-print*,Dgrow(sim%a)
-print*,r3(1:4,1,1)/Dgrow(sim%a)
   open(11,file=output_dir()//'delta_L'//output_suffix(),status='replace',access='stream')
-!  r3=r3/Dgrow(sim%a)
-  do i=1,ng
-    write(11) r3(:,:,i)/Dgrow(sim%a)
-  enddo
-!  write(11) r3
+  write(11) r3
   close(11); sync all
 
   open(11,file=output_dir()//'delta_L_proj'//output_suffix(),status='replace',access='stream')
@@ -623,6 +627,58 @@ print*,r3(1:4,1,1)/Dgrow(sim%a)
   call system_clock(t2,t_rate)
   if (head) print*, '  elapsed time =',real(t2-t1)/t_rate,'secs';
   sync all
+
+  !write velocity field
+  if (write_velocity) then
+
+     vf=vfactor(sim%a)
+
+     !!x
+     r3=0
+     do k=1,nf
+        do j=1,nf
+           do i=1,nf
+              r3(i,j,k)=-(phi(i+1,j,k)-phi(i-1,j,k))/(8*pi)*vf
+           end do
+        end do
+     end do
+
+     if (head) print*, '  write v_x into file'
+     open(11,file=output_name('v_x_L'),status='replace',access='stream')
+     write(11) r3
+     close(11)
+
+     !!y
+     r3=0
+     do k=1,nf
+        do j=1,nf
+           do i=1,nf
+              r3(i,j,k)=-(phi(i,j+1,k)-phi(i,j-1,k))/(8*pi)*vf
+           end do
+        end do
+     end do
+
+     if (head) print*, '  write v_y into file'
+     open(11,file=output_name('v_y_L'),status='replace',access='stream')
+     write(11) r3
+     close(11)
+
+     !!z
+     r3=0
+     do k=1,nf
+        do j=1,nf
+           do i=1,nf
+              r3(i,j,k)=-(phi(i,j,k+1)-phi(i,j,k-1))/(8*pi)*vf
+           end do
+        end do
+     end do
+
+     if (head) print*, '  write v_z into file'
+     open(11,file=output_name('v_z_L'),status='replace',access='stream')
+     write(11) r3
+     close(11)
+
+  end if
 
   ! zip checkpoints ------------------------------------------------
   if (head) print*, ''
@@ -866,7 +922,7 @@ print*,r3(1:4,1,1)/Dgrow(sim%a)
     endif
   endif
   sim%mass_p_cdm=real(f_cdm*nf_global**3,kind=8)/sim%npglobal
-  sim%mass_p_nu=real(f_nu*nf_global**3,kind=8)/sim%npglobal_nu
+  sim%mass_p_nu=real(sum(f_neu)*nf_global**3,kind=8)/sim%npglobal_nu
 
 #ifdef onehalo
   sim%mass_p_cdm=4
@@ -969,7 +1025,7 @@ print*,r3(1:4,1,1)/Dgrow(sim%a)
     implicit none
     real, parameter :: om=omega_m
     real, parameter :: ol=omega_l
-    real, parameter :: np = -(1./4.)+(5./4.)*sqrt(1-24.*omega_nu/omega_m/25.) !~1-3f/5
+    real, parameter :: np = -(1./4.)+(5./4.)*sqrt(1-24.*sum(f_neu)/25.) !~1-3f/5
     real z1,z2
     real Dgrow
     real hsq,oma,ola,a1,a2,ga1,ga2
@@ -992,7 +1048,7 @@ print*,r3(1:4,1,1)/Dgrow(sim%a)
 
   function vfactor(a)
     implicit none
-    real, parameter :: np = -(1./4.)+(5./4.)*sqrt(1-24.*omega_nu/omega_m/25.) !~1-3f/5
+    real, parameter :: np = -(1./4.)+(5./4.)*sqrt(1-24.*sum(f_neu)/25.) !~1-3f/5
     real :: a
     real :: H,km,lm
     real :: vfactor
