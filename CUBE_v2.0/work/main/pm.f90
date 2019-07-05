@@ -156,7 +156,7 @@ integer(4) t01,t02,t0rate
          do jj=1,ncell
          do ii=1,ncell
             tempx=ncell*((/i,j,k/)-1) + ((/ii,jj,kk/))
-            idx1(:)=floor(tempx(:))+1
+            idx1(:)=floor(tempx(:))+1+nfb
             vreal=force_f(:,idx1(1),idx1(2),idx1(3))*a_mid*dt/6/pi
             tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))
             do nu=1,Nneu

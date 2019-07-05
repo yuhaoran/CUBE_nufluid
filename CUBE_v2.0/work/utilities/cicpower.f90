@@ -219,8 +219,16 @@ program cicpower
      rho_nu=0
   end if
 
-  open(17,file='./'//trim(adjustl(str_z))//'nuslice.bin',access='stream',status='replace')
+  open(17,file='./'//trim(adjustl(str_z))//'nuslice_x.bin',access='stream',status='replace')
+  write(17) rho_nu(ng/2,:,:)
+  close(17)
+
+  open(17,file='./'//trim(adjustl(str_z))//'nuslice_y.bin',access='stream',status='replace')
   write(17) rho_nu(:,ng/2,:)
+  close(17)
+
+  open(17,file='./'//trim(adjustl(str_z))//'nuslice_z.bin',access='stream',status='replace')
+  write(17) rho_nu(:,:,ng/2)
   close(17)
 
 
