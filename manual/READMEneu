@@ -1,0 +1,77 @@
+Relevent neutrino parameters
+
+--SETUP--
+
+1) work/main/parameters.f90 -- contains basic cosmological parameters for neutrinos
+->Nneu = # of distinct neutrino masses
+->Mneu = masses in eV
+->Tneu = temperatures in kelvin
+->dneu = degeneracy: how many neutrinos per unique mass
+
+ex. simulate 3 neutrinos each with 0.1 eV mass
+Nneu = 1
+Mneu = (/0.1/)
+Tneu = (/Tcnb/)
+dneu = (/3/)
+
+ex. simulate minimal hierarchy
+Nneu = 2
+Mneu = (/0.01,0.05/)
+Tneu = (/Tcnb,Tcnb/)
+dneu = (/1,1/)
+
+2) work/utilities/initial_conditions.f90 - produces initial conditions for CDM that are appropriate for running with neutrinos
+#define sigma_8
+->s8 = value of sigma_8 at z=z_i_nu NOT at z=0.  CAMB outputs this number!
+->fntf = CAMB transfer function at z=z_i_nu
+->nk = number of rows in fntf -- e.g. wc -l camb_tk.dat
+
+ex. 3 neutrinos with mass 0.1 eV
+fntf = '../../tf/neutrino_tf/mnu3x100meV/mnu3x100meV_transfer_out_z10.dat'
+in file ../../tf/neutrino_tf/mnu3x100meV/mnu3x100meV_log look for sigma_8 at z=10 --> find that it is 0.0900
+
+ex. no neutrinos
+fntf = '../../tf/neutrino_tf/mnu0x000meV/mnu0x000meV_transfer_out_z10.dat'
+in file ../../tf/neutrino_tf/mnu0x000meV/mnu0x000meV_log look for sigma_8 at z=10 --> find that it is 0.0950
+(& set Mneu=0, dfld_nc small to conserve memory)
+
+REMARK -- even with no neutrinos use transfer functions at z=10 to get best results
+
+--RUNNING--
+The way the code works is that CDM is evolved by itself until z=z_i_neu, then neutrinos are also evolved to z=0.  The initial conditions take into account the fact that CDM should be evolving with neutrinos at all times, not just 10->0
+
+Currently there are no neu initial conditions, so we instead run the neutrinos from z>z_i_neu, but *do not* add them to the potential until z_i_neu -- that is, they feel but do not contribute to the force.
+
+1) hyrodf.f90 -- wraps around hydrogr.f90 and includes all non-hydro neutrino physics
+->dfld_ai_max = controls the z>z_i_neu.  Set to lower values for more accurate results on large scales.  If you have proper initial conditions set to 1./(1.+z_i_neu)
+->dfld_nc = size of the hydrodynamic grid.  Larger values give better small scale accuracy.  In general aim for k~(pi/L)*dlfd_nc~1/Mpc (or smaller)
+
+ex. 
+dfld_ai_max = 0.05
+dfld_nc = (/hg_nf/2,hg_nf/4,hg_nf/8/)
+
+REMARK: you can see the numerical velocities in variable dfld_GL_v
+REMARK: increase dfld_ai_max and decrease dfld_nc to improve performance at the cost of accuracy.
+
+2) hydrogr.f90 -- wraps around hydro3d.f90 and includes gravitational evolution of fluids and contains units
+
+3) hydro3d.f90 -- does directionally split 3d hydro, based on Trac & Pen code
+
+4) hydro1d.f90 -- does 1d hydro, based on notes provided by A. MacFadyen
+
+preprocessor statements
+->#define HIGH_RES_T = higher order timestep -- not needed because timestepping is already 2nd order accurate
+->#define HIGH_RES_X = if you want shock capturing
+are for accuracy of hydro.  Whereas
+->#define P_SEMILINEAR = isothermal fluid (semilinear approx for pressure)
+->#define q_SEMILINEAR = ideal fluid with deltaP instead of P (semilinear approx for heat flux)
+->#define q_NONLINEAR = energy evolved via continuity equation
+are different approximations relevent for neutrinos.  If none of the three are defined it is ideal hydrodynamics.
+
+In general use HIGH_RES_X and q_SEMILINEAR.  Note that this can also be controlled by optional parameter cs2 instead of preprocessor if for instance you wanted to run hydro and neutrinos at the same time.
+
+--ANALYSIS--
+
+1) cicpower.f90 - modified to compute P(k) for cc,cn,nn.  
+
+REMARK: contains an example of how to compute the neutrino density field from simulation outputs
