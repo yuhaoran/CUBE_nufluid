@@ -1,3 +1,4 @@
+#define NEUTRINO_IC
 module HydroDF
   use hydrogr
   implicit none
@@ -9,9 +10,14 @@ module HydroDF
   real(kind=h_fpp), parameter :: dfld_sol = 2.998e5
   !!When to start evolution of components
   real(kind=h_fpp), parameter :: dfld_ai_kms = (8.*pi**2./3.)/(box**2.*(h0*100.)**2*omega_m)/hg_dv**2/2.
-  real(kind=h_fpp), parameter :: dfld_ai_max = 0.05
+  real(kind=h_fpp), parameter :: dfld_ai_max = 1./(1.+z_i_nu)
+#ifdef NEUTRINO_IC
+  real(kind=h_fpp), parameter :: dfld_ai_min = dfld_ai_max
+#else
+  real(kind=h_fpp), parameter :: dfld_ai_min = 0.
+#endif
   real(kind=h_fpp), parameter :: dfld_ai_soft_g = 1.
-  real(kind=h_fpp), parameter :: dfld_ai_soft_h = 0.9*dfld_ai_soft_g !Start hydro slightly before gravity
+  real(kind=h_fpp), parameter :: dfld_ai_soft_h = 1.!0.9*dfld_ai_soft_g !Start hydro slightly before gravity
 
   !Number of isothermal fluids in dispersive sum
   integer, parameter :: dfld_n_hydro = 3
@@ -19,7 +25,7 @@ module HydroDF
   real(kind=h_fpp), dimension(dfld_n_hydro), parameter :: dfld_GL_v = (/0.41577456,2.29428036,6.28994508/)
   real(kind=h_fpp), dimension(dfld_n_hydro), parameter :: dfld_GL_w = (/0.71109301,0.27851773,0.01038926/)
   !Cell sizes
-  integer, dimension(dfld_n_hydro), parameter :: dfld_nc = (/ hg_nf/2,hg_nf/2,hg_nf/4 /)
+  integer, dimension(dfld_n_hydro), parameter :: dfld_nc = (/ hg_nf/2,hg_nf/2,hg_nf/2 /)
 
   !Verbosity level (-1=nothing, 0=a little, 1=a lot)
   integer :: dfld_verbosity=1
@@ -88,6 +94,7 @@ contains
 
     do n=1,dfld_n_hydro
        ai=min(dfld_ai_kms*d%n_hydro(n)%cs2,dfld_ai_max)
+       if (ai.lt.dfld_ai_min) ai = dfld_ai_min
        if (a.ge.ai) then
           call d%n_hydro(n)%evolve(dt,dtg,dir)
        else if (a.ge.dfld_ai_soft_h*ai) then
@@ -112,6 +119,7 @@ contains
 
     do n=1,dfld_n_hydro
        ai=min(dfld_ai_kms*d%n_hydro(n)%cs2,dfld_ai_max)
+       if (ai.lt.dfld_ai_min) ai=dfld_ai_min
        if (a.ge.ai) then
           call d%n_hydro(n)%gravity(x,acc)
        else if (a.ge.dfld_ai_soft_g*ai) then

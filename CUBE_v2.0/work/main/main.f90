@@ -4,6 +4,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !#define record_Fc
+#define NEUTRINO_IC
 program main
   use omp_lib
   use variables
@@ -22,13 +23,21 @@ program main
   call buffer_v
 
   neutrino_flag=sum(f_neu).gt.0
+#ifdef NEUTRINO_IC
+  if (neutrino_flag) then
+     do nu=1,Nneu
+        write(astr,'(I10)') nu
+        call neu(nu)%restart(output_dir()//'neu'//trim(adjustl(astr))//output_suffix())
+     end do
+  end if
+#else
   if (neutrino_flag) then
      if (head) hg_verb=2
      do nu=1,Nneu
         call neu(nu)%setup(real(5./3.,kind=h_fpp), real(Mneu(nu),kind=h_fpp),.true.)
      end do
   end if
-
+#endif
   cur_checkpoint=cur_checkpoint+1
   cur_halofind=cur_checkpoint+1
   if (head) open(77,file=output_dir()//'vinfo'//output_suffix(),access='stream',status='replace')
@@ -63,8 +72,13 @@ program main
       dt_old=0
       call update_x
       if (checkpoint_step) then
-         if (neutrino_flag) call neu(1)%checkpoint(output_name('neu')) !should update to write out all neu
-        call checkpoint
+         if (neutrino_flag) then
+            do nu=1,Nneu
+               write(astr,'(I10)') nu
+               call neu(nu)%checkpoint(output_name('neu'//trim(adjustl(astr)))) !should update to write out all neu
+            end do
+         end if
+         call checkpoint
         cur_checkpoint=cur_checkpoint+1
       endif
       call buffer_grid

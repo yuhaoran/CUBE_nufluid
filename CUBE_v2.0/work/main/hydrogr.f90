@@ -1,5 +1,5 @@
 !#define SEMILINEAR
-!#define q_EQN_OF_STATE
+#define q_EQN_OF_STATE
 module HydroGR
   use parameters
   use hydro3d
@@ -28,6 +28,7 @@ module HydroGR
      procedure :: gravity => hg_gravity
      procedure :: buffer => hg_buffer
      procedure :: density => hg_density
+     procedure :: set_fld => hg_set_fld
      procedure :: checkpoint => hg_checkpoint
      procedure :: restart => hg_restart
   end type hydro
@@ -172,59 +173,41 @@ contains
     !-z
     h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,h%nc+1:h%nc+h%ncb)=h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1:h%ncb)
 
-
-!!$    sync all
-!!$
-!!$    do i=1,2
-!!$
-!!$       !x
-!!$       slicex(1:5,1:h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)=&
-!!$            &h%fld(1:5,h%nc-h%ncb+1:h%nc,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)
-!!$       sync all
-!!$       h%fld(1:5,1-h%ncb:0,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)=&
-!!$            &slicex(1:5,1:h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)[image1d(inx,icy,icz)]
-!!$       sync all
-!!$       
-!!$       slicex(1:5,1:h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)=&
-!!$            &h%fld(1:5,1:h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)
-!!$       sync all
-!!$       h%fld(1:5,h%nc+1:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)=&
-!!$            &slicex(1:5,1:h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)[image1d(ipx,icy,icz)]
-!!$       sync all
-!!$
-!!$       !y
-!!$       slicey(1:5,1-h%ncb:h%nc+h%ncb,1:h%ncb,1-h%ncb:h%nc+h%ncb)=&
-!!$            &h%fld(1:5,1-h%ncb:h%nc+h%ncb,h%nc-h%ncb+1:h%nc,1-h%ncb:h%nc+h%ncb)
-!!$       sync all
-!!$       h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:0,1-h%ncb:h%nc+h%ncb)=&
-!!$            slicey(1:5,1-h%ncb:h%nc+h%ncb,1:h%ncb,1-h%ncb:h%nc+h%ncb)[image1d(icx,iny,icz)]
-!!$       sync all
-!!$       
-!!$       slicey(1:5,1-h%ncb:h%nc+h%ncb,1:h%ncb,1-h%ncb:h%nc+h%ncb)=&
-!!$            &h%fld(1:5,1-h%ncb:h%nc+h%ncb,1:h%ncb,1-h%ncb:h%nc+h%ncb)
-!!$       sync all
-!!$       h%fld(1:5,1-h%ncb:h%nc+h%ncb,h%nc+1:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb)=&
-!!$            slicey(1:5,1-h%ncb:h%nc+h%ncb,1:h%ncb,1-h%ncb:h%nc+h%ncb)[image1d(icx,ipy,icz)]
-!!$       sync all
-!!$
-!!$       !z
-!!$       slicez(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1:h%ncb)=&
-!!$            &h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,h%nc-h%ncb+1:h%nc)
-!!$       sync all
-!!$       h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:0)=&
-!!$            slicez(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1:h%ncb)[image1d(icx,icy,inz)]
-!!$       sync all
-!!$       
-!!$       slicez(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1:h%ncb)=&
-!!$            &h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1:h%ncb)
-!!$       sync all
-!!$       h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,h%nc+1:h%nc+h%ncb)=&
-!!$            slicez(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1:h%ncb)[image1d(icx,icy,ipz)]
-!!$       sync all
-!!$
-!!$    end do
-
   end subroutine hg_buffer
+
+  !Subroutine to set a fluid element given an input array that may be of different size
+  !assumes size of r3d is divisible by h%nc
+  subroutine hg_set_fld(h,r3d,d)
+    implicit none
+    class(hydro) :: h
+    real, dimension(:,:,:), intent(in) :: r3d
+    integer, intent(in) :: d
+    integer :: n,i,j,k,ii,jj,kk
+    integer, dimension(3) :: c
+
+    n=size(r3d,dim=1)/h%nc
+
+    h%fld(d,:,:,:)=0
+    do k=1,h%nc
+       c(3)=(k-1)*n
+       do j=1,h%nc
+          c(2)=(j-1)*n
+          do i=1,h%nc
+             c(1)=(i-1)*n
+
+             do kk=1,n
+                do jj=1,n
+                   do ii=1,n
+                      h%fld(d,i,j,k)=h%fld(d,i,j,k)+r3d( c(1)+ii, c(2)+jj, c(3)+kk )/n**3
+                   end do
+                end do
+             end do
+
+          end do
+       end do
+    end do
+
+  end subroutine hg_set_fld
 
   !Subroutine to compute interpolated density at coordinate x
   function hg_density(h,x) result(d)
@@ -361,24 +344,5 @@ contains
     close(11)
     
   end subroutine hg_restart
-
-!!$  subroutine hg_checkpoint(del,fn)
-!!$    implicit none
-!!$    real(kind=h_fpp), dimension(:,:,:), intent(in) :: del
-!!$    character(len=*), intent(in) :: fn
-!!$    integer :: stat
-!!$
-!!$    call hg_write('Checkpointing wave to file: '//fn,0)
-!!$
-!!$    !Open file and write out
-!!$    open(unit=11,file=trim(adjustl(fn)),access='stream',iostat=stat,status='replace')
-!!$    if (stat.ne.0) then
-!!$       write(*,*) 'ERROR in checkpoint: could not open output file: '//trim(adjustl(fn))
-!!$       error stop
-!!$    end if
-!!$    write(11) real(del,kind=REAL32)
-!!$    close(11)
-!!$
-!!$  end subroutine hg_checkpoint
 
 end module HydroGR

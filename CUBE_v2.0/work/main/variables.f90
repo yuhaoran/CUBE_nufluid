@@ -9,6 +9,7 @@ module variables
   type(hydro) :: gas
   type(dfld), dimension(Nneu) :: neu
   integer :: nu,nu_t
+  character(len=10) :: astr
 
   ! parameters
   integer(8),parameter :: np_image=(nc*np_nc)**3*merge(2,1,body_centered_cubic) ! average number of particles per image

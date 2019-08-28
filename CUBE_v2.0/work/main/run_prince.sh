@@ -14,6 +14,7 @@ cd ../utilities/
 make clean
 make
 srun ./ic.x > log_ic
+srun ./ic_nu.x > log_ic_nu
 
 cd ../main/
 srun ./main.x > log_main

@@ -27,7 +27,7 @@ program initial_conditions
   logical,parameter :: correct_kernel=.true.
   logical,parameter :: write_potential=.true.
   logical,parameter :: write_noise=.false.
-  logical,parameter :: write_velocity=.false.
+  logical,parameter :: write_velocity=.true.
 
 #ifdef sigma_8
   real, parameter :: s8 = 0.090
@@ -418,7 +418,7 @@ program initial_conditions
   if (head) print*,'  write delta_L into file'
   if (head) print*,'  growth factor Dgrow(',sim%a,') =',Dgrow(sim%a)
   open(11,file=output_dir()//'delta_L'//output_suffix(),status='replace',access='stream')
-  write(11) r3
+  write(11) r3/DgrowRatio(sim%z_i,sim%z_i_nu)
   close(11); sync all
 
   open(11,file=output_dir()//'delta_L_proj'//output_suffix(),status='replace',access='stream')
@@ -638,13 +638,13 @@ program initial_conditions
      do k=1,nf
         do j=1,nf
            do i=1,nf
-              r3(i,j,k)=-(phi(i+1,j,k)-phi(i-1,j,k))/(8*pi)*vf
+              r3(i,j,k)=-(phi(i+1,j,k)-phi(i-1,j,k))/(8*pi)*vf/DgrowRatio(sim%z_i,sim%z_i_nu)
            end do
         end do
      end do
 
      if (head) print*, '  write v_x into file'
-     open(11,file=output_name('v_x_L'),status='replace',access='stream')
+     open(11,file=output_dir()//'v_x_L'//output_suffix(),status='replace',access='stream')
      write(11) r3
      close(11)
 
@@ -653,13 +653,13 @@ program initial_conditions
      do k=1,nf
         do j=1,nf
            do i=1,nf
-              r3(i,j,k)=-(phi(i,j+1,k)-phi(i,j-1,k))/(8*pi)*vf
+              r3(i,j,k)=-(phi(i,j+1,k)-phi(i,j-1,k))/(8*pi)*vf/DgrowRatio(sim%z_i,sim%z_i_nu)
            end do
         end do
      end do
 
      if (head) print*, '  write v_y into file'
-     open(11,file=output_name('v_y_L'),status='replace',access='stream')
+     open(11,file=output_dir()//'v_y_L'//output_suffix(),status='replace',access='stream')
      write(11) r3
      close(11)
 
@@ -668,13 +668,13 @@ program initial_conditions
      do k=1,nf
         do j=1,nf
            do i=1,nf
-              r3(i,j,k)=-(phi(i,j,k+1)-phi(i,j,k-1))/(8*pi)*vf
+              r3(i,j,k)=-(phi(i,j,k+1)-phi(i,j,k-1))/(8*pi)*vf/DgrowRatio(sim%z_i,sim%z_i_nu)
            end do
         end do
      end do
 
      if (head) print*, '  write v_z into file'
-     open(11,file=output_name('v_z_L'),status='replace',access='stream')
+     open(11,file=output_dir()//'v_z_L'//output_suffix(),status='replace',access='stream')
      write(11) r3
      close(11)
 

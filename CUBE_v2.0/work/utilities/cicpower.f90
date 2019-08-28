@@ -58,7 +58,7 @@ program cicpower
 
   call create_penfft_plan
 
-  do cur_checkpoint= 2,n_checkpoint
+  do cur_checkpoint= 2,2!2,n_checkpoint
     if (head) print*, 'Start analyzing redshift ',z2str(z_checkpoint(cur_checkpoint))
 
     !call particle_initialization
@@ -203,7 +203,8 @@ program cicpower
   !Read in neutrinos
   if (sum(f_neu).gt.0) then
      if (head) write(*,*) 'computing neu density'
-     call neu%restart(output_name('neu'))
+     call neu%restart(output_name('neu1'))
+     !call neu%restart(output_dir()//'neu1'//output_suffix())
      do k=1,ng
      do j=1,ng
      do i=1,ng

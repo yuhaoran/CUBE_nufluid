@@ -8,12 +8,12 @@ OPTIONS+=-DPID
 #OPTIONS+=-Dpositive
 #OPTIONS+=-DEmode -DdspE
 
-all: ic.x cicpower.x #cicrsd.x cicrsd1.x halofinder.x dsp.x lpt.x lpt1.x ang_mom_corr.x #vel.x qspace.x corr.x #convert.x
+all: ic.x ic_nu.x cicpower.x #cicrsd.x cicrsd1.x halofinder.x dsp.x lpt.x lpt1.x ang_mom_corr.x #vel.x qspace.x corr.x #convert.x
 	@echo "done"
 
 ic.x:    parameters.o variables.o pencil_fft.o initial_conditions.o powerspectrum.o
 	$(FC) $(XFLAG) $(OPTIONS) $^ -o $@ $(FFTFLAG)
-ic_nu.x: parameters.o variables.o pencil_fft.o initial_conditions_nu.o
+ic_nu.x: parameters.o variables.o pencil_fft.o hydrodf.o hydrogr.o hydro3d.o hydro1d.o neutrino_ic.o 
 	$(FC) $(XFLAG) $(OPTIONS) $^ -o $@ $(FFTFLAG)
 
 lpt.x: parameters.o variables.o pencil_fft.o lpt.o halofind.o powerspectrum.o indexedsort.o
@@ -66,7 +66,7 @@ powerspectrum.o: powerspectrum.f90 parameters.o pencil_fft.o
 
 initial_conditions.o:    initial_conditions.f90    parameters.o variables.o pencil_fft.o powerspectrum.o
 	$(FC) $(OFLAG) $(OPTIONS) $< $(FFTFLAG)
-initial_conditions_nu.o: initial_conditions_nu.f90 parameters.o variables.o pencil_fft.o
+neutrino_ic.o: neutrino_ic.f90 parameters.o variables.o pencil_fft.o hydrodf.o
 	$(FC) $(OFLAG) $(OPTIONS) $< $(FFTFLAG)
 
 lpt.o: lpt.f90 parameters.o variables.o pencil_fft.o powerspectrum.o

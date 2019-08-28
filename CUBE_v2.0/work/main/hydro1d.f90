@@ -4,7 +4,7 @@
 !#define HIGH_RES_T
 #define HIGH_RES_X
 !#define P_SEMILINEAR
-!#define q_EQN_OF_STATE
+#define q_EQN_OF_STATE
 #define q_SEMILINEAR
 module hydro1d
   use, intrinsic :: ISO_FORTRAN_ENV

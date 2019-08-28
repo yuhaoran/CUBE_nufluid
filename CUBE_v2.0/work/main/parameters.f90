@@ -26,7 +26,7 @@ module parameters
   integer(8),parameter :: n_nest=1 ! number of nested threads
   integer(8),parameter :: ncell=4 ! number of nf in each nc, /dim
   integer(8),parameter :: nnt=4 ! number of tiles /image/dim
-  integer(8),parameter :: nc=128 ! nc/image/dim, in physical volume, >=24
+  integer(8),parameter :: nc=64 ! nc/image/dim, in physical volume, >=24
   integer(8),parameter :: nt=nc/nnt ! nc/tile/dim, in physical volume, >=12
 
   integer(8),parameter :: nf=nc*ncell ! >=96
@@ -79,7 +79,7 @@ module parameters
 
   integer, parameter :: Nneu = 1 ! number of unique neutrino masses
   real, dimension(Nneu), parameter :: Mneu = (/ 0.1 /) !masses in eV
-  real, dimension(Nneu), parameter :: Tneu = (/ Tcnb /) !temp in K
+  real, dimension(Nneu), parameter :: Tneu = (/ Tcnb /) !!NOT IMPLEMENTED YET IN PERTURBATIONS!! !temp in K
   real, dimension(Nneu), parameter :: dneu = (/ 3 /) !degeneracy = number of neutrinos with a given mass
 
   ! background parameters
