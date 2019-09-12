@@ -90,8 +90,8 @@ program neutrino_ic
         !4 Store density field in neu
         call neu(nu)%n_hydro(n)%set_fld(1+r3,1) !rho=1+delta=1+r3
 
-        !4 Store energy field as well
-        neu(nu)%n_hydro(n)%fld(5,:,:,:)=neu(nu)%n_hydro(n)%fld(1,:,:,:)*neu(nu)%n_hydro(n)%cs2/(neu(nu)%n_hydro(n)%g-1.)
+        !4 Add isotropic stress to energy
+        neu(nu)%n_hydro(n)%fld(5,:,:,:) = neu(nu)%n_hydro(n)%fld(1,:,:,:)*neu(nu)%n_hydro(n)%cs2/(neu(nu)%n_hydro(n)%g-1.)
 
         !4 Reset r3
         r3=r3_cpy
@@ -160,6 +160,10 @@ program neutrino_ic
 
            !4 Convert velocity field to momentum field
            neu(nu)%n_hydro(n)%fld(1+d,:,:,:)=neu(nu)%n_hydro(n)%fld(1,:,:,:)*neu(nu)%n_hydro(n)%fld(1+d,:,:,:)
+
+           !4 Add kinetic energy to total energy
+           neu(nu)%n_hydro(n)%fld(5,:,:,:)=neu(nu)%n_hydro(n)%fld(5,:,:,:)+&
+                &0.5*neu(nu)%n_hydro(n)%fld(1+d,:,:,:)**2./neu(nu)%n_hydro(n)%fld(1,:,:,:)
 
            !4 Reset r3
            r3=r3_cpy

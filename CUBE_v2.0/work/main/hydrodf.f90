@@ -25,7 +25,7 @@ module HydroDF
   real(kind=h_fpp), dimension(dfld_n_hydro), parameter :: dfld_GL_v = (/0.41577456,2.29428036,6.28994508/)
   real(kind=h_fpp), dimension(dfld_n_hydro), parameter :: dfld_GL_w = (/0.71109301,0.27851773,0.01038926/)
   !Cell sizes
-  integer, dimension(dfld_n_hydro), parameter :: dfld_nc = (/ hg_nf/2,hg_nf/2,hg_nf/2 /)
+  integer, dimension(dfld_n_hydro), parameter :: dfld_nc = (/ hg_nf/2,hg_nf/4,hg_nf/8 /)
 
   !Verbosity level (-1=nothing, 0=a little, 1=a lot)
   integer :: dfld_verbosity=1

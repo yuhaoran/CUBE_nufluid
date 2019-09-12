@@ -58,7 +58,7 @@ program cicpower
 
   call create_penfft_plan
 
-  do cur_checkpoint= 2,2!2,n_checkpoint
+  do cur_checkpoint= 2,n_checkpoint
     if (head) print*, 'Start analyzing redshift ',z2str(z_checkpoint(cur_checkpoint))
 
     !call particle_initialization
@@ -219,6 +219,18 @@ program cicpower
   else
      rho_nu=0
   end if
+
+  open(17,file='./'//trim(adjustl(str_z))//'slice_x.bin',access='stream',status='replace')
+  write(17) rho_c(ng/2,:,:)
+  close(17)
+
+  open(17,file='./'//trim(adjustl(str_z))//'slice_y.bin',access='stream',status='replace')
+  write(17) rho_c(:,ng/2,:)
+  close(17)
+
+  open(17,file='./'//trim(adjustl(str_z))//'slice_z.bin',access='stream',status='replace')
+  write(17) rho_c(:,:,ng/2)
+  close(17)
 
   open(17,file='./'//trim(adjustl(str_z))//'nuslice_x.bin',access='stream',status='replace')
   write(17) rho_nu(ng/2,:,:)

@@ -182,29 +182,19 @@ contains
     class(hydro) :: h
     real, dimension(:,:,:), intent(in) :: r3d
     integer, intent(in) :: d
-    integer :: n,i,j,k,ii,jj,kk
-    integer, dimension(3) :: c
+    integer :: n,i,j,k
+    real(8) :: r
 
     n=size(r3d,dim=1)/h%nc
+    if (n.ne.size(r3d,dim=2)/h%nc .or. n.ne.size(r3d,dim=3)/h%nc) error stop
+    r=(1.d0*n)**3.
 
-    h%fld(d,:,:,:)=0
     do k=1,h%nc
-       c(3)=(k-1)*n
-       do j=1,h%nc
-          c(2)=(j-1)*n
-          do i=1,h%nc
-             c(1)=(i-1)*n
-
-             do kk=1,n
-                do jj=1,n
-                   do ii=1,n
-                      h%fld(d,i,j,k)=h%fld(d,i,j,k)+r3d( c(1)+ii, c(2)+jj, c(3)+kk )/n**3
-                   end do
-                end do
-             end do
-
-          end do
-       end do
+    do j=1,h%nc
+    do i=1,h%nc
+       h%fld(d,i,j,k)=sum( r3d((i-1)*n+1:i*n,(j-1)*n+1:j*n,(k-1)*n+1:k*n) )/r
+    end do
+    end do
     end do
 
   end subroutine hg_set_fld
