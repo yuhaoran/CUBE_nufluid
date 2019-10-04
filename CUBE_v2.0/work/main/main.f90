@@ -25,6 +25,7 @@ program main
   neutrino_flag=sum(f_neu).gt.0
 #ifdef NEUTRINO_IC
   if (neutrino_flag) then
+     if (head) hg_verb=2
      do nu=1,Nneu
         write(astr,'(I10)') nu
         call neu(nu)%restart(output_dir()//'neu'//trim(adjustl(astr))//output_suffix())

@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=1:00:00
+#SBATCH --time=4:00:00
 #SBATCH --mem=8GB
 
 source ../utilities/module_load_prince.sh

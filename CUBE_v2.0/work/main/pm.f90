@@ -27,7 +27,6 @@ integer(4) t01,t02,t0rate
   real tempx(3),dx1(3),dx2(3)
   real r3t(-1:nt+2,-1:nt+2,-1:nt+2) ! coarse density on tile, with buffer=2
   real(8) testrhof, testrhoc
-  real(8), parameter :: ncells3 = (1.d0*ncells)**3.0
   if (head) then
     print*, ''
     print*, 'particle mesh'
@@ -194,11 +193,11 @@ integer(4) t01,t02,t0rate
   do ity=1,nnt
   do itx=1,nnt ! loop over tile
     r3t=0
-    
+
     if (neutrino_flag) then
        if (1./a_mid-1..gt.z_i_nu) then
           if (head.and. itx*ity*itz.eq.1) write(*,*) 'Adding coarse neu homogeneous'
-          r3t=r3t+sum(f_neu)
+          r3t=r3t+sum(f_neu)*ncell**3
        else
           if (head.and. itx*ity*itz.eq.1) write(*,*) 'Adding coarse neu perturbations'
           do k=1,nt
@@ -209,7 +208,7 @@ integer(4) t01,t02,t0rate
              do ii=1,ncell
                 tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))-0.5
                 do nu=1,Nneu
-                   r3t(i,j,k)=r3t(i,j,k)+neu(nu)%density(tempx)*f_neu(nu)/ncells3
+                   r3t(i,j,k)=r3t(i,j,k)+neu(nu)%density(tempx)*f_neu(nu)
                 end do
              end do
              end do
@@ -255,6 +254,7 @@ integer(4) t01,t02,t0rate
   enddo
   enddo
   enddo
+
   testrhoc=sum(r3*1d0)
   call system_clock(t2,t_rate)
   print*, '    elapsed time =',real(t2-t1)/t_rate,'secs';

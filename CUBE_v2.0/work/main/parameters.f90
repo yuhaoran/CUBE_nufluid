@@ -67,7 +67,7 @@ module parameters
   real,parameter :: pi=4*atan(1.)
 
   ! cosmological parameters
-  real,parameter :: box=1000*nn  ! simulation scale /dim, in unit of Mpc/h
+  real,parameter :: box=300*nn  ! simulation scale /dim, in unit of Mpc/h
   integer,parameter :: zdim=2 ! the dimension being the redhisft direction
 
   real,parameter :: z_i_nu=10.0 ! initial redshift for neutrinos
