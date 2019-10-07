@@ -200,35 +200,40 @@ contains
   end subroutine hg_set_fld
 
   !Subroutine to compute interpolated density at coordinate x
-  function hg_density(h,x) result(d)
+  !gc controls NGP vs CIC interpolation: gc>=h%dx yields NGP, gc<h%dx yields CIC
+  function hg_density(h,x,gc) result(d)
     implicit none
     class(hydro) :: h
     real, dimension(3), intent(in) :: x
+    integer, intent(in) :: gc
     integer, dimension(3) :: idx1,idx2
     real, dimension(3) :: xx,dx1,dx2
     real(kind=h_fpp) :: d
 
-#   ifdef HG_NGP
-    idx1=1+floor(x/h%dx)
-    d=h%fld(1,idx1(1),idx1(2),idx1(3))
-    return
-#   endif
+    if (gc.ge.h%dx) then
 
-    xx=x/h%dx-0.5
+       idx1=1+floor(x/h%dx)
+       d=h%fld(1,idx1(1),idx1(2),idx1(3))
 
-    idx1=1+floor(xx)
-    idx2=1+idx1
-    dx1=idx1-xx
-    dx2=1.-dx1
+    else
 
-    d     = h%fld(1,idx1(1),idx1(2),idx1(3))*dx1(1)*dx1(2)*dx1(3) &
-         &+ h%fld(1,idx2(1),idx1(2),idx1(3))*dx2(1)*dx1(2)*dx1(3) &
-         &+ h%fld(1,idx1(1),idx2(2),idx1(3))*dx1(1)*dx2(2)*dx1(3) &
-         &+ h%fld(1,idx2(1),idx2(2),idx1(3))*dx2(1)*dx2(2)*dx1(3) &
-         &+ h%fld(1,idx1(1),idx1(2),idx2(3))*dx1(1)*dx1(2)*dx2(3) &
-         &+ h%fld(1,idx2(1),idx1(2),idx2(3))*dx2(1)*dx1(2)*dx2(3) &
-         &+ h%fld(1,idx1(1),idx2(2),idx2(3))*dx1(1)*dx2(2)*dx2(3) &
-         &+ h%fld(1,idx2(1),idx2(2),idx2(3))*dx2(1)*dx2(2)*dx2(3) 
+       xx=x/h%dx-0.5
+
+       idx1=1+floor(xx)
+       idx2=1+idx1
+       dx1=idx1-xx
+       dx2=1.-dx1
+
+       d     = h%fld(1,idx1(1),idx1(2),idx1(3))*dx1(1)*dx1(2)*dx1(3) &
+            &+ h%fld(1,idx2(1),idx1(2),idx1(3))*dx2(1)*dx1(2)*dx1(3) &
+            &+ h%fld(1,idx1(1),idx2(2),idx1(3))*dx1(1)*dx2(2)*dx1(3) &
+            &+ h%fld(1,idx2(1),idx2(2),idx1(3))*dx2(1)*dx2(2)*dx1(3) &
+            &+ h%fld(1,idx1(1),idx1(2),idx2(3))*dx1(1)*dx1(2)*dx2(3) &
+            &+ h%fld(1,idx2(1),idx1(2),idx2(3))*dx2(1)*dx1(2)*dx2(3) &
+            &+ h%fld(1,idx1(1),idx2(2),idx2(3))*dx1(1)*dx2(2)*dx2(3) &
+            &+ h%fld(1,idx2(1),idx2(2),idx2(3))*dx2(1)*dx2(2)*dx2(3) 
+
+    end if
 
   end function hg_density
 

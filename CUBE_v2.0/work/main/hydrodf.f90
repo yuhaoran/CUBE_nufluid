@@ -181,9 +181,10 @@ contains
 
   end subroutine dfld_restart
 
-  function dfld_density_field(d) result(density)
+  function dfld_density_field(d,gc) result(density)
     implicit none
     class(dfld) :: d
+    integer, intent(in) :: gc
     real(kind=h_fpp), dimension(hg_nf/2,hg_nf/2,hg_nf/2) :: density
     integer :: n,i,j,k
     real, dimension(3) :: x
@@ -194,7 +195,7 @@ contains
           do j=1,hg_nf/2
              do i=1,hg_nf/2
                 x=2.*(/i,j,k/)-1.
-                density(i,j,k)=density(i,j,k)+d%dwgts(n)*d%n_hydro(n)%density(x)
+                density(i,j,k)=density(i,j,k)+d%dwgts(n)*d%n_hydro(n)%density(x,gc)
              end do
           end do
        end do
@@ -202,16 +203,17 @@ contains
 
   end function dfld_density_field
 
-  function dfld_density(d,x) result(density)
+  function dfld_density(d,x,gc) result(density)
     implicit none
     class(dfld) :: d
+    integer, intent(in) :: gc
     real, dimension(3), intent(in) :: x
     real(kind=h_fpp) :: density
     integer :: n
     
     density=0.
     do n=1,dfld_n_hydro
-       density=density+d%dwgts(n)*d%n_hydro(n)%density(x)
+       density=density+d%dwgts(n)*d%n_hydro(n)%density(x,gc)
     end do
 
   end function dfld_density

@@ -64,7 +64,7 @@ integer(4) t01,t02,t0rate
           do i=1,nfe
              tempx=((/itx,ity,itz/)-1)*nt*ncell+(/i,j,k/)-nfb-0.5
              do nu=1,Nneu
-                rho_f(i,j,k)=rho_f(i,j,k)+neu(nu)%density(tempx)*f_neu(nu)
+                rho_f(i,j,k)=rho_f(i,j,k)+neu(nu)%density(tempx,1)*f_neu(nu)
              end do
           end do
           end do
@@ -208,7 +208,7 @@ integer(4) t01,t02,t0rate
              do ii=1,ncell
                 tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))-0.5
                 do nu=1,Nneu
-                   r3t(i,j,k)=r3t(i,j,k)+neu(nu)%density(tempx)*f_neu(nu)
+                   r3t(i,j,k)=r3t(i,j,k)+neu(nu)%density(tempx,int(ncell))*f_neu(nu)
                 end do
              end do
              end do
