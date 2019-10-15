@@ -32,7 +32,7 @@ subroutine cross_power(xip,cube1,cube2)
   real kr,kx(3),sincx,sincy,sincz,sinc,rbin
 
   real cube1(ng,ng,ng),cube2(ng,ng,ng)
-  real xi(10,0:nbin)[*],xip(10,nbin)
+  real xi(10,0:nbin),xip(10,nbin)[*]
   real amp11,amp12,amp22
   complex cx1(ng*nn/2+1,ng,npen),cx2(ng*nn/2+1,ng,npen)
 
@@ -108,31 +108,32 @@ subroutine cross_power(xip,cube1,cube2)
   write(55) pow2drsd
   close(55)
 #endif
+sync all
+xip=xi(:,1:)
 
   ! co_sum
   if (head) then
     do i=2,nn**3
-      xi=xi+xi(:,:)[i]
+      xip=xip+xip(:,:)[i]
     enddo
   endif
   sync all
 
   ! broadcast
-  xi=xi(:,:)[1]
+  xip=xip(:,:)[1]
   sync all
 
   ! divide and normalize
-  xi(2,:)=xi(2,:)/xi(1,:)*(2*pi)/box ! k_phy
-  xi(3,:)=xi(3,:)/xi(1,:) ! Delta_LL
-  xi(4,:)=xi(4,:)/xi(1,:) ! Delta_RR
-  xi(5,:)=xi(5,:)/xi(1,:) ! Delta_LR ! cross power
-  xi(6,:)=xi(6,:)/xi(1,:) ! kernel
-  xi(7,:)=xi(7,:)/xi(1,:) ! kernel
-  xi(8,:)=xi(5,:)/sqrt(xi(3,:)*xi(4,:)) ! r
-  xi(9,:)=sqrt(xi(4,:)/xi(3,:)) ! b
-  xi(10,:)=xi(8,:)**4/xi(9,:)**2 * xi(4,:) ! P_RR*r^4/b^2 reco power
-  sync all
-  xip=xi(:,1:)
+  xip(2,:)=xip(2,:)/xip(1,:)*(2*pi)/box ! k_phy
+  xip(3,:)=xip(3,:)/xip(1,:) ! Delta_LL
+  xip(4,:)=xip(4,:)/xip(1,:) ! Delta_RR
+  xip(5,:)=xip(5,:)/xip(1,:) ! Delta_LR ! cross power
+  xip(6,:)=xip(6,:)/xip(1,:) ! kernel
+  xip(7,:)=xip(7,:)/xip(1,:) ! kernel
+  xip(8,:)=xip(5,:)/sqrt(xip(3,:)*xip(4,:)) ! r
+  xip(9,:)=sqrt(xip(4,:)/xip(3,:)) ! b
+  xip(10,:)=xip(8,:)**4/xip(9,:)**2 * xip(4,:) ! P_RR*r^4/b^2 reco power
+
   sync all
 endsubroutine
 
