@@ -25,14 +25,14 @@ complex cx1(ng*nn/2+1,ng,npen),cx2(ng*nn/2+1,ng,npen)
 
 contains
 
-subroutine cross_power(xi,cube1,cube2)
+subroutine cross_power(xip,cube1,cube2)
   implicit none
 
   integer(8) i,j,k,ig,jg,kg,ibin
   real kr,kx(3),sincx,sincy,sincz,sinc,rbin
 
   real cube1(ng,ng,ng),cube2(ng,ng,ng)
-  real xi(10,nbin)[*]
+  real xi(10,0:nbin)[*],xip(10,nbin)
   real amp11,amp12,amp22
   complex cx1(ng*nn/2+1,ng,npen),cx2(ng*nn/2+1,ng,npen)
 
@@ -131,6 +131,8 @@ subroutine cross_power(xi,cube1,cube2)
   xi(8,:)=xi(5,:)/sqrt(xi(3,:)*xi(4,:)) ! r
   xi(9,:)=sqrt(xi(4,:)/xi(3,:)) ! b
   xi(10,:)=xi(8,:)**4/xi(9,:)**2 * xi(4,:) ! P_RR*r^4/b^2 reco power
+  sync all
+  xip=xi(:,1:)
   sync all
 endsubroutine
 
