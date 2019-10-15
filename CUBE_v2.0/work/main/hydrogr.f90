@@ -126,26 +126,110 @@ contains
 
   end subroutine hg_evolve
 
-  subroutine hg_gravity(h,x,acc)
+  !gravity subroutine -- adds gravitational acceleration to momentum and energy
+  !gc controls NGP (gc=0) or CIC (gc!=0) interpolation, the latter requires buffered forces
+  subroutine hg_gravity(h,x,acc,gc)
     implicit none
     class(hydro) :: h
     real, dimension(3), intent(in) :: x
     real(8), dimension(3), intent(in) :: acc
-    real(kind=h_fpp), dimension(3) :: accr
+    integer, intent(in) :: gc
+    real(kind=h_fpp), dimension(3) :: accr,xx,dx1,dx2,dp
+    real(kind=h_fpp) :: dV,dE
+    integer, dimension(3) :: idx1,idx2
     integer :: i,j,k
-    
-    i=1+floor(x(1)/h%dx)
-    j=1+floor(x(2)/h%dx)
-    k=1+floor(x(3)/h%dx)
+
+    !assume we always receive hg_nf accelerations, so have to downweight them
     accr=acc/(h%dx)**3
 
-#ifndef SEMILINEAR
-    h%fld(5,i,j,k)=h%fld(5,i,j,k)+sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
-    h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+accr*h%fld(1,i,j,k)
-#else
-    h%fld(5,i,j,k)=h%fld(5,i,j,k)+(sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k)))/h%fld(1,i,j,k)
-    h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+accr
-#endif    
+    if (gc.eq.0) then
+
+       i=1+floor(x(1)/h%dx)
+       j=1+floor(x(2)/h%dx)
+       k=1+floor(x(3)/h%dx)
+
+       dV=1
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+    else
+       
+       xx=x/h%dx-0.5
+
+       idx1=1+floor(xx)
+       idx2=1+idx1
+       dx1=idx1-xx
+       dx2=1.-dx1
+
+       !1,1,1
+       i=idx1(1);j=idx1(2);k=idx1(3)
+       dV=dx1(1)*dx1(2)*dx1(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+       !2,1,1
+       i=idx2(1);j=idx1(2);k=idx1(3)
+       dV=dx2(1)*dx1(2)*dx1(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+       !1,2,1
+       i=idx1(1);j=idx2(2);k=idx1(3)
+       dV=dx1(1)*dx2(2)*dx1(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+       !2,2,1
+       i=idx2(1);j=idx2(2);k=idx1(3)
+       dV=dx2(1)*dx2(2)*dx1(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+       !1,1,2
+       i=idx1(1);j=idx1(2);k=idx2(3)
+       dV=dx1(1)*dx1(2)*dx2(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+       !2,1,2
+       i=idx2(1);j=idx1(2);k=idx2(3)
+       dV=dx2(1)*dx1(2)*dx2(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+       !1,2,2
+       i=idx1(1);j=idx2(2);k=idx2(3)
+       dV=dx1(1)*dx2(2)*dx2(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+       
+       !2,2,2
+       i=idx2(1);j=idx2(2);k=idx2(3)
+       dV=dx2(1)*dx2(2)*dx2(3)
+       dE=sum(h%fld(2:4,i,j,k)*accr)+0.5*sum(accr**2*h%fld(1,i,j,k))
+       dp=accr*h%fld(1,i,j,k)
+       h%fld(5,i,j,k)=h%fld(5,i,j,k)+dV*dE
+       h%fld(2:4,i,j,k)=h%fld(2:4,i,j,k)+dV*dp
+
+    end if
+
   end subroutine hg_gravity
 
   subroutine hg_buffer(h)
@@ -200,7 +284,7 @@ contains
   end subroutine hg_set_fld
 
   !Subroutine to compute interpolated density at coordinate x
-  !gc controls NGP vs CIC interpolation: gc>=h%dx yields NGP, gc<h%dx yields CIC
+  !gc controls NGP vs CIC interpolation: gc=0 yields NGP, gc!=0 yields CIC
   function hg_density(h,x,gc) result(d)
     implicit none
     class(hydro) :: h
@@ -210,7 +294,7 @@ contains
     real, dimension(3) :: xx,dx1,dx2
     real(kind=h_fpp) :: d
 
-    if (gc.ge.h%dx) then
+    if (gc.eq.0) then
 
        idx1=1+floor(x/h%dx)
        d=h%fld(1,idx1(1),idx1(2),idx1(3))
