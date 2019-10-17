@@ -108,12 +108,13 @@ contains
     
   end subroutine dfld_evolve
 
-  subroutine dfld_gravity(d,x,acc,a)
+  subroutine dfld_gravity(d,x,acc,a,gc)
     implicit none
     class(dfld) :: d
     real, intent(in) :: a
-    real, dimension(3) :: x
-    real(8), dimension(3) :: acc
+    real, dimension(3), intent(in) :: x
+    real(8), dimension(3), intent(in) :: acc
+    integer, intent(in) :: gc
     integer :: n
     real :: ai    
 
@@ -121,10 +122,10 @@ contains
        ai=min(dfld_ai_kms*d%n_hydro(n)%cs2,dfld_ai_max)
        if (ai.lt.dfld_ai_min) ai=dfld_ai_min
        if (a.ge.ai) then
-          call d%n_hydro(n)%gravity(x,acc)
+          call d%n_hydro(n)%gravity(x,acc,gc)
        else if (a.ge.dfld_ai_soft_g*ai) then
           !call d%n_hydro(n)%gravity(x,acc*(a/ai)**4.)
-          call d%n_hydro(n)%gravity(x,acc)
+          call d%n_hydro(n)%gravity(x,acc,gc)
        end if
     end do
 

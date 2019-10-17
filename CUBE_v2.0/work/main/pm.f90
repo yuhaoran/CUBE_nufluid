@@ -24,7 +24,8 @@ integer(4) t01,t02,t0rate
   integer(4),parameter :: nlayer=3 ! thread save for CIC integpolation
   integer(4) ilayer
   integer(8) idx1(3),idx2(3)
-  real tempx(3),dx1(3),dx2(3)
+  real :: rho_nu
+  real tempx(3),tempxc(3),tempxf(3),dx1(3),dx2(3)
   real r3t(-1:nt+2,-1:nt+2,-1:nt+2) ! coarse density on tile, with buffer=2
   real(8) testrhof, testrhoc
   if (head) then
@@ -162,7 +163,7 @@ integer(4) t01,t02,t0rate
             vreal=force_f(:,idx1(1),idx1(2),idx1(3))*a_mid*dt/6/pi
             tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))-0.5
             do nu=1,Nneu
-               call neu(nu)%gravity(tempx,vreal,a_mid)
+               call neu(nu)%gravity(tempx,vreal,a_mid,1)
             end do
          end do
          end do
@@ -172,7 +173,7 @@ integer(4) t01,t02,t0rate
     enddo
     enddo
     enddo
-    !$omp endparalleldo
+    !$omp endparalleldo    
   enddo
   enddo
   enddo ! itz
@@ -200,15 +201,36 @@ integer(4) t01,t02,t0rate
           r3t=r3t+sum(f_neu)*ncell**3
        else
           if (head.and. itx*ity*itz.eq.1) write(*,*) 'Adding coarse neu perturbations'
-          do k=1,nt
-          do j=1,nt
-          do i=1,nt
+          !note: have to loop over buffer cells too
+          do k=0,nt+1
+          do j=0,nt+1
+          do i=0,nt+1
              do kk=1,ncell
              do jj=1,ncell
              do ii=1,ncell
-                tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))-0.5
+                tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))-0.5 !coordinate in fine cells                
+                tempxc=( ((/i,j,k/)-1)*ncell+((/ii,jj,kk/))-0.5 )/ncell !coordinate in coarse cells, note: lack of itx,ity,itz part
+
+                !CIC interpolation
+                tempxc=tempxc-0.5
+                idx1=1+floor(tempxc)
+                idx2=idx1+1
+                dx1=idx1-tempxc
+                dx2=1.-dx1
+
                 do nu=1,Nneu
-                   r3t(i,j,k)=r3t(i,j,k)+neu(nu)%density(tempx,int(ncell))*f_neu(nu)
+
+                   rho_nu=neu(nu)%density(tempx,1)*f_neu(nu)
+
+                   r3t(idx1(1),idx1(2),idx1(3))=r3t(idx1(1),idx1(2),idx1(3))+rho_nu*dx1(1)*dx1(2)*dx1(3)
+                   r3t(idx2(1),idx1(2),idx1(3))=r3t(idx2(1),idx1(2),idx1(3))+rho_nu*dx2(1)*dx1(2)*dx1(3)
+                   r3t(idx1(1),idx2(2),idx1(3))=r3t(idx1(1),idx2(2),idx1(3))+rho_nu*dx1(1)*dx2(2)*dx1(3)
+                   r3t(idx2(1),idx2(2),idx1(3))=r3t(idx2(1),idx2(2),idx1(3))+rho_nu*dx2(1)*dx2(2)*dx1(3)
+                   r3t(idx1(1),idx1(2),idx2(3))=r3t(idx1(1),idx1(2),idx2(3))+rho_nu*dx1(1)*dx1(2)*dx2(3)
+                   r3t(idx2(1),idx1(2),idx2(3))=r3t(idx2(1),idx1(2),idx2(3))+rho_nu*dx2(1)*dx1(2)*dx2(3)
+                   r3t(idx1(1),idx2(2),idx2(3))=r3t(idx1(1),idx2(2),idx2(3))+rho_nu*dx1(1)*dx2(2)*dx2(3)
+                   r3t(idx2(1),idx2(2),idx2(3))=r3t(idx2(1),idx2(2),idx2(3))+rho_nu*dx2(1)*dx2(2)*dx2(3)
+
                 end do
              end do
              end do
@@ -341,22 +363,6 @@ integer(4) t01,t02,t0rate
         vp(:,ip)=nint(real(nvbin-1)*atan(sqrt(pi/2)/(sigma_vi*vrel_boost)*vreal)/pi,kind=izipv)
       enddo
 
-      if (neutrino_flag) then
-         tempx=((/itx,ity,itz/)-1)*nt+((/i,j,k/))
-         idx1(:)=floor(tempx(:))+1
-         vreal=force_c(:,idx1(1),idx1(2),idx1(3))*a_mid*dt/6/pi
-         do kk=1,ncell
-         do jj=1,ncell
-         do ii=1,ncell
-            tempx=((/itx,ity,itz/)-1)*nt*ncell+((/i,j,k/)-1)*ncell+((/ii,jj,kk/))-0.5
-            do nu=1,Nneu
-               call neu(nu)%gravity(tempx,vreal,a_mid)
-            end do
-         end do
-         end do
-         end do
-      end if
-
     enddo
     enddo
     enddo
@@ -364,6 +370,57 @@ integer(4) t01,t02,t0rate
   enddo
   enddo
   enddo
+  
+  if (neutrino_flag) then
+     !note: loop over coarse buffer cells as well
+     do k=0,nc+1
+     do j=0,nc+1
+     do i=0,nc+1
+
+        !compute force at fine cell locations
+        do kk=1,ncell
+        do jj=1,ncell
+        do ii=1,ncell
+
+           tempx=((/i,j,k/)-1)*ncell+(/ii,jj,kk/) !fine cell coordinates
+           !skip part of buffer that doesn't end up in interpolating to real locations
+           if (minval(tempx).lt.-1 .or. maxval(tempx).gt.nf+2) cycle
+           tempx=tempx-0.5
+           tempxc=tempx/ncell
+
+           !CIC interpolate
+           tempxc=tempxc-0.5
+           idx1=1+floor(tempxc)
+           idx2=idx1+1
+           dx1=idx1-tempxc
+           dx2=1-dx1
+
+           !compute acceleration
+           vreal=0
+           vreal=vreal+force_c(:,idx1(1),idx1(2),idx1(3))*a_mid*dt/6/pi*dx1(1)*dx1(2)*dx1(3)
+           vreal=vreal+force_c(:,idx2(1),idx1(2),idx1(3))*a_mid*dt/6/pi*dx2(1)*dx1(2)*dx1(3)
+           vreal=vreal+force_c(:,idx1(1),idx2(2),idx1(3))*a_mid*dt/6/pi*dx1(1)*dx2(2)*dx1(3)
+           vreal=vreal+force_c(:,idx2(1),idx2(2),idx1(3))*a_mid*dt/6/pi*dx2(1)*dx2(2)*dx1(3)
+           vreal=vreal+force_c(:,idx1(1),idx1(2),idx2(3))*a_mid*dt/6/pi*dx1(1)*dx1(2)*dx2(3)
+           vreal=vreal+force_c(:,idx2(1),idx1(2),idx2(3))*a_mid*dt/6/pi*dx2(1)*dx1(2)*dx2(3)
+           vreal=vreal+force_c(:,idx1(1),idx2(2),idx2(3))*a_mid*dt/6/pi*dx1(1)*dx2(2)*dx2(3)
+           vreal=vreal+force_c(:,idx2(1),idx2(2),idx2(3))*a_mid*dt/6/pi*dx2(1)*dx2(2)*dx2(3)
+
+           !add to neutrinos
+           do nu=1,Nneu
+              call neu(nu)%gravity(tempx,vreal,a_mid,1)
+           end do
+
+        end do
+        end do
+        end do
+
+     end do
+     end do
+     end do
+
+  end if
+  
   call system_clock(t2,t_rate)
   print*, '      elapsed time =',real(t2-t1)/t_rate,'secs';
 

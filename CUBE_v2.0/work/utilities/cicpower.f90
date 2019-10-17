@@ -211,7 +211,7 @@ program cicpower
         dx1(1)=(i-0.5)*hg_nf/ng
         dx1(2)=(j-0.5)*hg_nf/ng
         dx1(3)=(k-0.5)*hg_nf/ng
-        rho_nu(i,j,k)=neu%density(dx1,int(nf/ng))
+        rho_nu(i,j,k)=neu%density(dx1,1)
      end do
      end do
      end do
