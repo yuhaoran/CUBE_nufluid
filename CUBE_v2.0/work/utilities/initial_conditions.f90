@@ -631,7 +631,7 @@ program initial_conditions
   !write velocity field
   if (write_velocity) then
 
-     vf=vfactor(sim%a)
+     vf=vfactor(1./(1.+sim%z_i_nu))/( -(1./4.)+(5./4.)*sqrt(1-24.*sum(f_neu)/25.) ) !vfactor at z_i_nu
 
      !!x
      r3=0
