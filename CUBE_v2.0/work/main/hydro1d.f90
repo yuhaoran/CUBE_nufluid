@@ -5,7 +5,6 @@
 #define HIGH_RES_X
 !#define P_SEMILINEAR
 #define q_EQN_OF_STATE
-#define q_SEMILINEAR
 module hydro1d
   use, intrinsic :: ISO_FORTRAN_ENV
   implicit none
@@ -117,13 +116,13 @@ contains
     real(kind=h_fpp), intent(in), optional :: cs2
     real(kind=h_fpp), dimension(size(h,1),size(h,2)) :: h12
 
-#ifdef HIGH_RES_T
-    h12=h+dt*h_riemann(h,g,cs2)/dx
-    h12=(3./4.)*h+(1./4.)*h12+(1./4.)*dt*h_riemann(h,g,cs2)/dx
-    h=(1./3.)*h+(2./3.)*h12+(2./3.)*dt*h_riemann(h12,g,cs2)/dx
-#else
-    h=h+dt*h_riemann(h,g,cs2)/dx
-#endif
+    if (h_hrt) then
+       h12=h+dt*h_riemann(h,g,cs2)/dx
+       h12=h*3./4.+h12/4.+dt*h_riemann(h12,g,cs2)/dx/4.
+       h=h/3.+h12*2./3.+dt*h_riemann(h12,g,cs2)/dx*2./3.
+    else
+       h=h+dt*h_riemann(h,g,cs2)/dx
+    end if
 
   end subroutine h_evolve
 
@@ -179,9 +178,6 @@ contains
     f(5,:)=(h_energy(h)+h_pressure(h,g,cs2))*h_velocity(h,2)
 #ifdef q_EQN_OF_STATE
     f(5,:)=h_energy(h)*h_velocity(h,2)
-#ifdef q_SEMILINEAR
-    if (present(cs2)) f(5,:)=(h_energy(h)+h_pressure(h,g,cs2)-h_density(h)*cs2)*h_velocity(h,2)
-#endif
 #endif
   end function h_flux
 

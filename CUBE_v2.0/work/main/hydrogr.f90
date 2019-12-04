@@ -1,4 +1,3 @@
-!#define SEMILINEAR
 #define q_EQN_OF_STATE
 module HydroGR
   use parameters
