@@ -1,7 +1,7 @@
 !#define onehalo
 #define sigma_8
 !#define READ_SEED
-#define READ_NOISE
+!#define READ_NOISE
 !#define READ_RECO
 !#define filter_phi
 !#define force_power
@@ -422,7 +422,7 @@ program initial_conditions
   close(11); sync all
 
   open(11,file=output_dir()//'delta_L_proj'//output_suffix(),status='replace',access='stream')
-  write(11) sum(r3(:,:,:13),dim=3)/13/Dgrow(sim%a)
+  write(11) sum(r3(:,:,:13),dim=3)/Dgrow(sim%a)
   close(11); sync all
   call system_clock(t2,t_rate)
   if (head) print*, '  elapsed time =',real(t2-t1)/t_rate,'secs';

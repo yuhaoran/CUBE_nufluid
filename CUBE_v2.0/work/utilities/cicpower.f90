@@ -196,9 +196,9 @@ program cicpower
 
 
   
-  open(15,file=output_dir()//'delta_L'//output_suffix(),status='old',access='stream')
-  read(15) rho_nu
-  close(15)
+  !open(15,file=output_dir()//'delta_L'//output_suffix(),status='old',access='stream')
+  !read(15) rho_nu
+  !close(15)
 
   !Read in neutrinos
   if (sum(f_neu).gt.0) then
@@ -220,6 +220,12 @@ program cicpower
      rho_nu=0
   end if
 
+  ! write 3D neutrino overdensity
+  open(11,file=output_name('delta_nu'),status='replace',access='stream')
+  write(11) rho_nu
+  close(11)
+
+#ifdef OUTPUT_SLICE
   open(17,file='./'//trim(adjustl(str_z))//'slice_x.bin',access='stream',status='replace')
   write(17) rho_c(ng/2,:,:)
   close(17)
@@ -243,7 +249,7 @@ program cicpower
   open(17,file='./'//trim(adjustl(str_z))//'nuslice_z.bin',access='stream',status='replace')
   write(17) rho_nu(:,:,ng/2)
   close(17)
-
+#endif
 
     call cross_power(xi,rho_c,rho_nu)
   sync all
