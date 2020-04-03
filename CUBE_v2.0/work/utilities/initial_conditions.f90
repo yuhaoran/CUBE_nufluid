@@ -23,7 +23,7 @@ program initial_conditions
 
   ! nc: coarse grid per image per dim
   ! nf: fine grid per image per dim, ng=nf
-  ! nyquest: Nyquest frequency
+  ! nyquist: nyquist frequency
   logical,parameter :: correct_kernel=.true.
   logical,parameter :: write_potential=.true.
   logical,parameter :: write_noise=.false.
@@ -77,24 +77,33 @@ program initial_conditions
   integer(4),allocatable :: iseed(:)
   real,allocatable :: rseed_all(:,:)
 
-  complex delta_k(nyquest+1,nf,npen)
-  real phi(-nfb:nf+nfb+1,-nfb:nf+nfb+1,-nfb:nf+nfb+1)[*]
+  !complex delta_k(nyquist+1,nf,npen) !! delta(k) in Fourier space
+  complex,allocatable :: delta_k(:,:,:)
+  !real phi(-nfb:nf+nfb+1,-nfb:nf+nfb+1,-nfb:nf+nfb+1)[*] !! gravitational potential in real space, with buffers
+  real,allocatable :: phi(:,:,:)[:]
 
   ! zip arrays
   integer(8),parameter :: npt=nt*np_nc ! np / tile / dim !64
   integer(8),parameter :: npb=ncb*np_nc !24
   integer(8),parameter :: npmax=2*(npt+2*npb)**3
-  integer(4) rhoce(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb)
-  integer(4) rholocal(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb)
-  real(4) vfield(3,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb)
+  !integer(4) rhoce(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb) ! rho_coarse_extended(with buffer)
+  integer(4),allocatable :: rhoce(:,:,:)
+  !integer(1) rholocal(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb) ! auxilary rhoce for counting particles  ! very technical
+  integer(1),allocatable :: rholocal(:,:,:)
+  !real(4) vfield(3,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb) ! coarse grid velocity field (with buffer)
+  real(4),allocatable :: vfield(:,:,:,:)
   integer(8) idx_ex_r(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb)
   integer(8),dimension(nt,nt) :: pp_l,pp_r,ppe_l,ppe_r
 
-  integer(izipx) xp(3,npmax)
-  integer(izipv) vp(3,npmax)
+  !integer(izipx) xp(3,npmax) ! integer-based particle positions, izipx = 1 or 2
+  !integer(izipv) vp(3,npmax) ! integer-based particle velocities, izipv = 1 or 2
+  integer(izipx),allocatable :: xp(:,:)
+  integer(izipv),allocatable :: vp(:,:)
 #ifdef PID
-    integer(4) pid(npmax)
+  !integer(4) pid(npmax) ! particle ID (tag), if np>2^31, use integer(8) for pid
+  integer(4),allocatable :: pid(:)
 #endif
+
 #ifdef force_power
   real xi(10,nbin)[*]
 #endif
@@ -142,6 +151,16 @@ program initial_conditions
     call system('cp ../main/*.f90 '//opath//'code/')
     call system('cp ../main/z_*.txt '//opath//'code/')
   endif
+
+  allocate(phi(-nfb:nf+nfb+1,-nfb:nf+nfb+1,-nfb:nf+nfb+1)[*])
+  allocate(vfield(3,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb))
+  allocate(rhoce(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb))
+  allocate(rholocal(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb))
+  allocate(xp(3,npmax),vp(3,npmax))
+  allocate(delta_k(nyquist+1,nf,npen))
+#ifdef PID
+  allocate(pid(npmax))
+#endif
 
   sync all
 
@@ -214,12 +233,12 @@ program initial_conditions
   enddo
   tf(4,nk)=tf(1,nk)-tf(1,nk-1)
   v8=0
-  kmax=2*pi*sqrt(3.)*nyquest/box
+  kmax=2*pi*sqrt(3.)*nyquist/box
   do k=1,nk
     if (tf(1,k)>kmax) exit
     v8=v8+tf(7,k)*tophat(tf(1,k)*8)**2*tf(4,k)/tf(1,k)
   enddo
-  if (head) print*, 's8**2/v8:', v8, s8**2/v8,nyquest
+  if (head) print*, 's8**2/v8:', v8, s8**2/v8,nyquist
   tf(2:3,:)=tf(2:3,:)*(s8**2/v8)*DgrowRatio(sim%z_i,sim%z_i_nu)**2
 
   if (head) then
@@ -339,13 +358,13 @@ program initial_conditions
   !$omp& private(k,j,i,kg,jg,ig,kz,ky,kx,kr,pow)
   do k=1,npen
   do j=1,nf
-  do i=1,nyquest+1
+  do i=1,nyquist+1
     ! global grid in Fourier space for i,j,k
     kg=(nn*(icz-1)+icy-1)*npen+k
     jg=(icx-1)*nf+j
     ig=i
-    kz=mod(kg+nyquest-1,nf_global)-nyquest
-    ky=mod(jg+nyquest-1,nf_global)-nyquest
+    kz=mod(kg+nyquist-1,nf_global)-nyquist
+    ky=mod(jg+nyquist-1,nf_global)-nyquist
     kx=ig-1
     kr=sqrt(kx**2+ky**2+kz**2)
     kr=max(kr,1.0)
@@ -436,12 +455,12 @@ program initial_conditions
   !$omp& private(k,j,i,kg,jg,ig,kz,ky,kx,kr)
   do k=1,npen
   do j=1,nf
-  do i=1,nyquest+1
+  do i=1,nyquist+1
     kg=(nn*(icz-1)+icy-1)*npen+k
     jg=(icx-1)*nf+j
     ig=i
-    kz=mod(kg+nyquest-1,nf_global)-nyquest
-    ky=mod(jg+nyquest-1,nf_global)-nyquest
+    kz=mod(kg+nyquist-1,nf_global)-nyquist
+    ky=mod(jg+nyquist-1,nf_global)-nyquist
     kx=ig-1
     kz=2*sin(pi*kz/nf_global)
     ky=2*sin(pi*ky/nf_global)
@@ -487,9 +506,9 @@ program initial_conditions
       kg=k+nf*(icz-1)
       jg=j+nf*(icy-1)
       ig=i+nf*(icx-1)
-      kx=mod(kg+nyquest-1,nf_global)-nyquest
-      ky=mod(jg+nyquest-1,nf_global)-nyquest
-      kz=mod(ig+nyquest-1,nf_global)-nyquest
+      kx=mod(kg+nyquist-1,nf_global)-nyquist
+      ky=mod(jg+nyquist-1,nf_global)-nyquist
+      kz=mod(ig+nyquist-1,nf_global)-nyquist
       kr=sqrt(kx**2+ky**2+kz**2)
       if (kr>8) then
         r3(i,j,k)=r3(i,j,k)-(phi8+1/8.)
@@ -548,13 +567,13 @@ program initial_conditions
   cxyz=0
   do k=1,npen
   do j=1,nf
-  do i=1,nyquest+1
+  do i=1,nyquist+1
     ! global grid in Fourier space for i,j,k
     kg=(nn*(icz-1)+icy-1)*npen+k
     jg=(icx-1)*nf+j
     ig=i
-    kz=mod(kg+nyquest-1,nf_global)-nyquest
-    ky=mod(jg+nyquest-1,nf_global)-nyquest
+    kz=mod(kg+nyquist-1,nf_global)-nyquist
+    ky=mod(jg+nyquist-1,nf_global)-nyquist
     kx=ig-1
     kr=sqrt(kx**2+ky**2+kz**2)
     kr=max(kr,1.0)
@@ -596,13 +615,13 @@ program initial_conditions
   cxyz=0
   do k=1,npen
   do j=1,nf
-  do i=1,nyquest+1
+  do i=1,nyquist+1
     ! global grid in Fourier space for i,j,k
     kg=(nn*(icz-1)+icy-1)*npen+k
     jg=(icx-1)*nf+j
     ig=i
-    kz=mod(kg+nyquest-1,nf_global)-nyquest
-    ky=mod(jg+nyquest-1,nf_global)-nyquest
+    kz=mod(kg+nyquist-1,nf_global)-nyquist
+    ky=mod(jg+nyquist-1,nf_global)-nyquist
     kx=ig-1
     kr=sqrt(kx**2+ky**2+kz**2)
     kr=max(kr,1.0)

@@ -22,7 +22,8 @@ program cicpower
   integer(8) nlast,ip,np,idx1(3),idx2(3)
 
   real(4) rho_grid(0:ng+1,0:ng+1,0:ng+1)[*]
-  real(4) rho_c(ng,ng,ng),rho_nu(ng,ng,ng)
+  !real(4) rho_c(ng,ng,ng),rho_nu(ng,ng,ng)
+  real,allocatable :: rho_c(:,:,:),rho_nu(:,:,:)
   real(4) mass_p,pos1(3),dx1(3),dx2(3)
   real(8) rho8[*]
 
@@ -146,6 +147,7 @@ program cicpower
     rho_grid(:,:,1)=rho_grid(:,:,1)+rho_grid(:,:,ng+1)[image1d(icx,icy,inz)]
     rho_grid(:,:,ng)=rho_grid(:,:,ng)+rho_grid(:,:,0)[image1d(icx,icy,ipz)]; sync all
     !rho_c=rho_grid(1:ng,1:ng,1:ng)
+    allocate(rho_c(ng,ng,ng),rho_nu(ng,ng,ng))
     do i=1,ng
     do j=1,ng
     do k=1,ng
@@ -221,6 +223,7 @@ program cicpower
   end if
 
   ! write 3D neutrino overdensity
+  if (head) print*,'Write delta_nu into',output_name('delta_nu')
   open(11,file=output_name('delta_nu'),status='replace',access='stream')
   write(11) rho_nu
   close(11)
@@ -251,18 +254,20 @@ program cicpower
   close(17)
 #endif
 
+    if (head) print*,'Call crosspower()'
     call cross_power(xi,rho_c,rho_nu)
+    deallocate(rho_c,rho_nu)
   sync all
   if (head) then
     open(15,file=output_name('cicpower'),status='replace',access='stream')
     write(15) xi
     close(15)
 
-    open(15,file='./'//trim(adjustl(str_z))//'cicpower.txt',status='replace')
-    do k=1,nbin
-       write(15,*) xi(:,k)
-    end do
-    close(15)
+    !open(15,file='./'//trim(adjustl(str_z))//'cicpower.txt',status='replace')
+    !do k=1,nbin
+    !   write(15,*) xi(:,k)
+    !end do
+    !close(15)
 
   endif
   sync all

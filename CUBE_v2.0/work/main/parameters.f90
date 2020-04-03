@@ -25,7 +25,7 @@ module parameters
   integer(8),parameter :: ncore=8
   integer(8),parameter :: n_nest=1 ! number of nested threads
   integer(8),parameter :: ncell=4 ! number of nf in each nc, /dim
-  integer(8),parameter :: nnt=4 ! number of tiles /image/dim
+  integer(8),parameter :: nnt=2 ! number of tiles /image/dim
   integer(8),parameter :: nc=64 ! nc/image/dim, in physical volume, >=24
   integer(8),parameter :: nt=nc/nnt ! nc/tile/dim, in physical volume, >=12
 
@@ -42,7 +42,7 @@ module parameters
 # endif
   integer(8),parameter :: npen=ng/nn ! ng /dim in shorter side of the pencil, for pencil decomposition
   integer(8),parameter :: ng_global=ng*nn
-  integer(8),parameter :: nyquest=ng_global/2
+  integer(8),parameter :: nyquist=ng_global/2
 
   integer(8),parameter :: ncb=6 ! nc in buffer /dim, single side; 6 by default
   integer(8),parameter :: nce=nc+2*ncb ! extended nc
@@ -54,7 +54,7 @@ module parameters
   integer(8),parameter :: nfe=nft+2*nfb ! 96
 
   logical,parameter :: body_centered_cubic=.false.
-  integer(8),parameter :: np_nc=ncell/2 ! number of particles / coarse cell / dim
+  integer(8),parameter :: np_nc=ncell ! number of particles / coarse cell / dim
   integer, parameter :: np_nc_nu = ncell/2 ! number of neutrinos per dim per coarse cell
 
   logical,parameter :: Extended_pp_force=.false.

@@ -10,17 +10,16 @@ module powerspectrum
 use pencil_fft
 
 #ifdef linear_kbin
-  integer(8),parameter :: nbin=nint(nyquest*sqrt(3.))
+  integer(8),parameter :: nbin=nint(nyquist*sqrt(3.))
 #else
-  integer(8),parameter :: nbin=floor(4*log(nyquest*sqrt(3.)/0.95)/log(2.))
+  integer(8),parameter :: nbin=floor(4*log(nyquist*sqrt(3.)/0.95)/log(2.))
 #endif
 #ifdef pl2d
   integer kp,kl
-  integer nmode(nint(nyquest*sqrt(2.))+1,nyquest+1)
-  real pow2d(nint(nyquest*sqrt(2.))+1,nyquest+1)
-  real pow2drsd(nint(nyquest*sqrt(2.))+1,nyquest+1)
+  integer nmode(nint(nyquist*sqrt(2.))+1,nyquist+1)
+  real pow2d(nint(nyquist*sqrt(2.))+1,nyquist+1)
+  real pow2drsd(nint(nyquist*sqrt(2.))+1,nyquist+1)
 #endif
-complex cx1(ng*nn/2+1,ng,npen),cx2(ng*nn/2+1,ng,npen)
 
 
 contains
@@ -34,12 +33,10 @@ subroutine cross_power(xip,cube1,cube2)
   real cube1(ng,ng,ng),cube2(ng,ng,ng)
   real xi(10,0:nbin),xip(10,nbin)[*]
   real amp11,amp12,amp22
-  complex cx1(ng*nn/2+1,ng,npen),cx2(ng*nn/2+1,ng,npen)
-
+  complex,allocatable :: cx1(:,:,:),cx2(:,:,:)
   real,parameter :: nexp=4.0 ! CIC kernel
-
+  allocate(cx1(ng*nn/2+1,ng,npen),cx2(ng*nn/2+1,ng,npen))
   xi=0
-
   r3=cube1
   call pencil_fft_forward
   cx1=cxyz/ng_global/ng_global/ng_global
@@ -51,18 +48,18 @@ subroutine cross_power(xip,cube1,cube2)
   xi=0
   sync all
 #ifdef pl2d
-  print*, 'size of pow2d',nint(nyquest*sqrt(2.))+1,nyquest+1
+  print*, 'size of pow2d',nint(nyquist*sqrt(2.))+1,nyquist+1
   pow2d=0
   nmode=0
 #endif
 
   do k=1,npen
   do j=1,ng
-  do i=1,nyquest+1
+  do i=1,nyquist+1
     kg=(nn*(icz-1)+icy-1)*npen+k
     jg=(icx-1)*ng+j
     ig=i
-    kx=mod((/ig,jg,kg/)+nyquest-1,ng_global)-nyquest
+    kx=mod((/ig,jg,kg/)+nyquist-1,ng_global)-nyquist
     if (ig==1.and.jg==1.and.kg==1) cycle ! zero frequency
     if ((ig==1.or.ig==ng*nn/2+1) .and. jg>ng*nn/2+1) cycle
     if ((ig==1.or.ig==ng*nn/2+1) .and. (jg==1.or.jg==ng*nn/2+1) .and. kg>ng*nn/2+1) cycle
@@ -99,6 +96,8 @@ subroutine cross_power(xip,cube1,cube2)
   enddo
   enddo
   sync all
+  deallocate(cx1,cx2)
+
 #ifdef pl2d
   nmode=max(1,nmode)
   pow2d=pow2d/nmode

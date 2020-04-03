@@ -8,7 +8,7 @@ module pencil_fft
   integer(8) planx,plany,planz,iplanx,iplany,iplanz
 
   ! fft arrays
-  real        r3(ng,ng,ng),r0(ng,ng)
+  real        r3(ng,ng,ng)!,r0(ng,ng)
   complex     c3(ng/2,ng,ng)
   real        rxyz(ng_global+2  ,ng,npen)
   complex     cxyz(ng_global/2+1,ng,npen)
@@ -17,10 +17,11 @@ module pencil_fft
   complex     czzzxy(npen,nn,nn,ng/2+1,npen)
 
   ! communication coarrays
-  complex ctransfer1(ng/2,ng,nn)[*]
-  complex ctransfer2(ng,ng/2+1,nn)[*]
-  complex ctransfer3(npen,npen,nn,nn)[*]
-  complex ctransfer4(ng/2+1,ng,nn)[*]
+  complex,allocatable :: ctransfer1(:,:,:)[:],ctransfer2(:,:,:)[:],ctransfer3(:,:,:,:)[:],ctransfer4(:,:,:)[:]
+  !complex ctransfer1(ng/2,ng,nn)[*]
+  !complex ctransfer2(ng,ng/2+1,nn)[*]
+  !complex ctransfer3(npen,npen,nn,nn)[*]
+  !complex ctransfer4(ng/2+1,ng,nn)[*]
 
   ! equivalence statements
   equivalence(cyyyxz,cyyxz,r3,c3)
@@ -63,6 +64,7 @@ module pencil_fft
     implicit none
     save
     integer(8) i0,i1,i2,islab
+    allocate(ctransfer1(ng/2,ng,nn)[*])
     do islab=1,npen ! loop over cells in z, extract slabs
       ctransfer1(:,:,1:nn)=c3(:,:,islab::npen) ! nn slabs of c3 copied to ctransfer1
       sync all
@@ -72,12 +74,14 @@ module pencil_fft
       enddo
       sync all
     enddo
+    deallocate(ctransfer1)
   endsubroutine
 
   subroutine x2y
     implicit none
     save
     integer(8) i0,i1,i2,islab
+    allocate(ctransfer2(ng,ng/2+1,nn)[*])
     do islab=1,npen ! loop over z
       do i1=1,nn ! loop over squares in x direction
         ctransfer2(:,:,i1)=transpose(cxyz(ng/2*(i1-1)+1:ng/2*i1+1,:,islab))
@@ -88,12 +92,14 @@ module pencil_fft
       enddo
       sync all
     enddo
+    deallocate(ctransfer2)
   endsubroutine
 
   subroutine y2z
     implicit none
     save
     integer(8) i0,i1,i2,islab
+    allocate(ctransfer3(npen,npen,nn,nn)[*])
     do islab=1,ng/2+1 ! loop over slices in x direction
       do i2=1,nn
       do i1=1,nn
@@ -108,12 +114,14 @@ module pencil_fft
       enddo
       sync all
     enddo
+    deallocate(ctransfer3)
   endsubroutine
 
   subroutine z2y
     implicit none
     save
     integer(8) i0,i1,i2,islab
+    allocate(ctransfer3(npen,npen,nn,nn)[*])
     do islab=1,ng/2+1 ! loop over slices in x direction
       do i2=1,nn
       do i1=1,nn
@@ -128,12 +136,14 @@ module pencil_fft
       enddo
       sync all
     enddo
+    deallocate(ctransfer3)
   endsubroutine
 
   subroutine y2x
     implicit none
     save
     integer(8) i0,i1,i2,islab
+    allocate(ctransfer4(ng/2+1,ng,nn)[*])
     do islab=1,npen ! loop over z
       do i1=1,nn ! loop over squares in x direction
         ctransfer4(:,:,i1)=transpose(cyyxz(:,i1,:,islab))
@@ -144,12 +154,14 @@ module pencil_fft
       enddo
       sync all
     enddo
+    deallocate(ctransfer4)
   endsubroutine
 
   subroutine x2c
     implicit none
     save
     integer(8) i0,i1,i2,islab
+    allocate(ctransfer1(ng/2,ng,nn)[*])
     do islab=1,npen
       do i1=1,nn
         ctransfer1(:,:,i1)=cxyz(ng*(i1-1)/2+1:ng*i1/2,:,islab)
@@ -160,6 +172,7 @@ module pencil_fft
       enddo
       sync all
     enddo
+    deallocate(ctransfer1)
   endsubroutine
 
   subroutine create_penfft_plan

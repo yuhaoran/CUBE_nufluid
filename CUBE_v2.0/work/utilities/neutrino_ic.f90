@@ -2,7 +2,7 @@
 program neutrino_ic
   use omp_lib
   use parameters
-  use variables
+  use variables, only: neu,nu,astr
   use pencil_fft
   use hydrodf
   implicit none
@@ -15,15 +15,14 @@ program neutrino_ic
   real :: r3_cpy(ng,ng,ng)
 
   ! Useful variables
-  integer :: ig,jg,kg,n,d
+  integer :: i,j,k,ig,jg,kg,n,d
   real :: kx,ky,kz,kr,kp,kfs,vneu,ll,tf
   character(len=1), dimension(3), parameter :: xyz = (/'x','y','z'/)
 
   call omp_set_num_threads(ncore)
   call geometry
-  call create_penfft_plan
-
   if (head) write(*,*) 'Program: neutrino_ic'
+  call create_penfft_plan
 
   !Setup neutrino field with homogeneous ic
   if (head) hg_verb=2
@@ -60,14 +59,14 @@ program neutrino_ic
         !4 Loop over modes
         do k=1,npen
            do j=1,nf
-              do i=1,nyquest+1
+              do i=1,nyquist+1
                  !5 ig,jg,kg are the global coordinates, labeled from the first node
                  kg=(nn*(icz-1)+icy-1)*npen+k
                  jg=(icx-1)*nf+j
                  ig=i
                  !5 kx,ky,kz are Fourier frequencies
-                 kz=mod(kg+nyquest-1,nf_global)-nyquest
-                 ky=mod(jg+nyquest-1,nf_global)-nyquest
+                 kz=mod(kg+nyquist-1,nf_global)-nyquist
+                 ky=mod(jg+nyquist-1,nf_global)-nyquist
                  kx=ig-1
                  !5 kr is the k we are using
                  kr=sqrt(kx**2+ky**2+kz**2)
@@ -86,10 +85,9 @@ program neutrino_ic
 
         !4 Transforms cxyz into real space, stored as r3
         call pencil_fft_backward
-
         !4 Store density field in neu
-        call neu(nu)%n_hydro(n)%set_fld(1+r3,1) !rho=1+delta=1+r3
-
+        r3=r3+1
+        call neu(nu)%n_hydro(n)%set_fld(r3,1) !rho=1+delta=1+r3
         !4 Add isotropic stress to energy
         neu(nu)%n_hydro(n)%fld(5,:,:,:) = neu(nu)%n_hydro(n)%fld(1,:,:,:)*neu(nu)%n_hydro(n)%cs2/(neu(nu)%n_hydro(n)%g-1.)
 
@@ -128,14 +126,14 @@ program neutrino_ic
            !4 Loop over modes
            do k=1,npen
               do j=1,nf
-                 do i=1,nyquest+1
+                 do i=1,nyquist+1
                     !5 ig,jg,kg are the global coordinates, labeled from the first node
                     kg=(nn*(icz-1)+icy-1)*npen+k
                     jg=(icx-1)*nf+j
                     ig=i
                     !5 kx,ky,kz are Fourier frequencies
-                    kz=mod(kg+nyquest-1,nf_global)-nyquest
-                    ky=mod(jg+nyquest-1,nf_global)-nyquest
+                    kz=mod(kg+nyquist-1,nf_global)-nyquist
+                    ky=mod(jg+nyquist-1,nf_global)-nyquist
                     kx=ig-1
                     !5 kr is the k we are using
                     kr=sqrt(kx**2+ky**2+kz**2)
