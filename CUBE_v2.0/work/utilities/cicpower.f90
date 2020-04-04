@@ -1,8 +1,6 @@
 !! add -DNEUTRINOS to compute cross_power(delta_c,delta_nu)
 !! otherwise compute cross_power(delta_L,delta_c)
 
-!#define write_xreal
-!#define analysis
 !define RSD
 !#define RSD_Emode
 program cicpower
@@ -21,14 +19,15 @@ program cicpower
   integer(8) i,j,k,l,i_dim,iq(3),nplocal,nplocal_nu,itx,ity,itz
   integer(8) nlast,ip,np,idx1(3),idx2(3)
 
-  real(4) rho_grid(0:ng+1,0:ng+1,0:ng+1)[*]
+  !real(4) rho_grid(0:ng+1,0:ng+1,0:ng+1)[*]
   !real(4) rho_c(ng,ng,ng),rho_nu(ng,ng,ng)
-  real,allocatable :: rho_c(:,:,:),rho_nu(:,:,:)
+  real,allocatable :: rho_grid(:,:,:)[:],rho_c(:,:,:),rho_nu(:,:,:)
   real(4) mass_p,pos1(3),dx1(3),dx2(3)
   real(8) rho8[*]
 
   integer(izipx),allocatable :: xp(:,:)
-  integer(4) rhoc(nt,nt,nt,nnt,nnt,nnt)
+  !integer(4) rhoc(nt,nt,nt,nnt,nnt,nnt)
+  integer(4),allocatable :: rhoc(:,:,:,:,:,:)
 
   real xi(10,nbin)[*]
   character(20) str_z,str_i
@@ -83,6 +82,8 @@ program cicpower
       print*, 'nplocal_nu =',nplocal_nu
     endif
     !cdm
+    allocate(rho_grid(0:ng+1,0:ng+1,0:ng+1)[*])
+    allocate(rhoc(nt,nt,nt,nnt,nnt,nnt))
     allocate(xp(3,nplocal))
     open(11,file=output_name('xp'),status='old',action='read',access='stream')
     read(11) xp
@@ -90,10 +91,6 @@ program cicpower
     open(11,file=output_name('np'),status='old',action='read',access='stream')
     read(11) rhoc
     close(11)
-
-#ifdef write_xreal
-    open(12,file=output_name('xreal'),status='replace',access='stream')
-#endif
 
     rho_grid=0
     nlast=0
@@ -107,11 +104,6 @@ program cicpower
         do l=1,np
           ip=nlast+l
           pos1=nt*((/itx,ity,itz/)-1)+ ((/i,j,k/)-1) + (int(xp(:,ip)+ishift,izipx)+rshift)*x_resolution
-
-#ifdef write_xreal
-    write(12) pos1*real(ng)/real(nc)
-#endif
-
           pos1=pos1*real(ng)/real(nc) - 0.5
 
           idx1=floor(pos1)+1
@@ -136,7 +128,7 @@ program cicpower
     enddo
     enddo
     sync all
-    deallocate(xp)
+    deallocate(xp,rhoc)
 
     if (head) print*, 'Start sync from buffer regions'
     sync all
@@ -161,6 +153,7 @@ program cicpower
     print*,rho_c(1:2,1:2,2)
     print*, 'check: min,max,sum of rho_grid = '
     print*, minval(rho_c),maxval(rho_c),sum(rho_c*1d0)
+    deallocate(rho_grid)
 
     rho8=sum(rho_c*1d0); sync all
     ! co_sum
@@ -271,12 +264,6 @@ program cicpower
 
   endif
   sync all
-
-
-#ifdef write_xreal
-    close(12)
-#endif
-
   enddo
   call destroy_penfft_plan
   sync all

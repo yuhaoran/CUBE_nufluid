@@ -17,15 +17,20 @@ subroutine update_xp()
 
   integer(4) ilayer,nlayer
   integer(8) idx,np_prev,checkv0,checkv1,ig(3)
-  integer(4) rhoce(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb) ! double buffer tile
-  real(4) vfield_new(3,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb)
+  !integer(4) rholocal(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb) ! count writing
+  !integer(4) rhoce(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb) ! double buffer tile
+  !real(4) vfield_new(3,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb)
+  integer(4),allocatable :: rhoce(:,:,:),rholocal(:,:,:)
+  real,allocatable :: vfield_new(:,:,:,:)
   real(8),parameter :: weight_v=0.1 ! how previous-step vfield is mostly weighted
   integer(8) idx_ex_r(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb)
   integer(8),dimension(nt,nt) :: pp_l,pp_r,ppe_l,ppe_r
-  integer(4) rholocal(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb) ! count writing
 
   if (head) print*,'update_xp'
   call system_clock(t1,t_rate)
+  allocate(vfield_new(3,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb))
+  allocate(rhoce(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb))
+  allocate(rholocal(1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb,1-2*ncb:nt+2*ncb))
   dt_mid=(dt_old+dt)/2
   if (head) print*,'  dt_mid =',dt_mid
   overhead_tile=0
@@ -249,6 +254,7 @@ subroutine update_xp()
     print*, '  elapsed time =',real(t2-t1)/t_rate,'secs'
     print*, ''
   endif
+  deallocate(vfield_new,rhoce,rholocal)
   sync all
 endsubroutine update_xp
 

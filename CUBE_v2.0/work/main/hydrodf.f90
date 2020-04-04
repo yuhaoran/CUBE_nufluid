@@ -137,7 +137,7 @@ contains
     character(len=*), intent(in) :: fn
     integer :: n,stat
 
-    call hg_write('Checkpointing to file: '//fn,0)
+    !call hg_write('Checkpointing to file: '//fn,0)
 
     !Open file and write out
     open(unit=11,file=trim(adjustl(fn)),access='stream',iostat=stat,status='replace')
@@ -175,6 +175,8 @@ contains
     read(11) m,g,iso,d%dwgts
     call d%setup(g,m,iso) 
     do n=1,dfld_n_hydro
+       print*,'  n =',n,'res =',size(d%n_hydro(n)%fld)
+       print*,'dfld_nc',dfld_nc
        read(11) d%n_hydro(n)%fld
     end do
 

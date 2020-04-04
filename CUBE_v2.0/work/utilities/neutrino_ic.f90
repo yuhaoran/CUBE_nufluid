@@ -12,7 +12,7 @@ program neutrino_ic
   real, parameter :: kfs1=sqrt(1.5*omega_m/(1.+z_i_nu))*100.
   
   ! Array to store cdm fields to prevent multiple reads
-  real :: r3_cpy(ng,ng,ng)
+  real,allocatable :: r3_cpy(:,:,:)
 
   ! Useful variables
   integer :: i,j,k,ig,jg,kg,n,d
@@ -37,23 +37,23 @@ program neutrino_ic
   open(11,file=output_dir()//'delta_L'//output_suffix(),access='stream',status='old')
   read(11) r3
   close(11)
+  allocate(r3_cpy(ng,ng,ng))
   r3_cpy=r3
+  if (head) print*,''
 
-  ! Compute density fields
-
+  if (head) print*,'Compute density fields'
   !! Loop over neutrinos
   do nu=1,Nneu
-
      !!! Loop over momenta
      do n=1,dfld_n_hydro
-
+        print*,'n =',n
         !4 Compute free streaming scale
         vneu=dfld_GL_v(n)/dfld_beta_eV*dfld_sol/Mneu(nu) !v=u*k*T*c/m
-        write(*,*) 'velocity: ',vneu,'km/s'
+        write(*,*) '  velocity: ',vneu,'km/s'
         kfs=kfs1/vneu
-        write(*,*) 'kfs=',kfs,'h/Mpc'
-     
+        write(*,*) '  kfs=',kfs,'h/Mpc'
         !4 Transform r3 into Fourier space, stored as cxyz
+        print*,'  pencil_fft_forward'
         call pencil_fft_forward
 
         !4 Loop over modes
@@ -84,6 +84,7 @@ program neutrino_ic
         sync all
 
         !4 Transforms cxyz into real space, stored as r3
+        print*,'  pencil_fft_backward'
         call pencil_fft_backward
         !4 Store density field in neu
         r3=r3+1
@@ -97,12 +98,13 @@ program neutrino_ic
      end do !n
 
   end do !nu
+  print*,''
 
-  ! Now compute velocity perturbations
+  print*,'Now compute velocity perturbations'
   do d=1,3
-
+    print*,'  Dimension',d
      ! Read in CDM velocity field
-     if (head) write(*,*) 'Reading CDM '//xyz(d)//'velocity field from file: '//output_dir()//'v_'//xyz(d)//'_L'//output_suffix()
+     print*,'    Reading CDM v_'//xyz(d)//' field from '//output_dir()//'v_'//xyz(d)//'_L'//output_suffix()
      open(11,file=output_dir()//'v_'//xyz(d)//'_L'//output_suffix(),access='stream',status='old')
      read(11) r3
      close(11)
@@ -121,6 +123,7 @@ program neutrino_ic
            kfs=kfs1/vneu
      
            !4 Transform r3 into Fourier space, stored as cxyz
+           print*,'    pencil_fft_forward'
            call pencil_fft_forward
 
            !4 Loop over modes
@@ -151,6 +154,7 @@ program neutrino_ic
            sync all
 
            !4 Transforms cxyz into real space, stored as r3
+           print*,'    pencil_fft_backward'
            call pencil_fft_backward
 
            !4 Store velocity field in neu
@@ -168,17 +172,19 @@ program neutrino_ic
 
         !Write out some information
         if (d.eq.3) call hg_hydro_properties(neu(nu)%n_hydro(n))
+        print*,''
         
         end do !n
 
      end do !nu
 
   end do !d
+  deallocate(r3_cpy)
 
   do nu=1,Nneu
      write(astr,'(I10)') nu
      if (head) write(*,*) 'Checkpointing to file: '//output_dir()//'neu'//trim(adjustl(astr))//output_suffix()
      call neu(nu)%checkpoint(output_dir()//'neu'//trim(adjustl(astr))//output_suffix())
   end do
-
+  if (head) print*, 'initial condition for neutrinos done'
 end program neutrino_ic

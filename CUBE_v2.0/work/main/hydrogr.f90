@@ -49,21 +49,24 @@ contains
 
     if (allocated(h%fld)) deallocate(h%fld)
     allocate(h%fld(5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb))
-
+    print*,'  h%nc =',h%nc
+    print*,'  h%ncb =',h%ncb
+    print*,'  res =',(h%nc+h%ncb)-(1-h%ncb)+1
+    print*,'  size of [h%fld] =',size(h%fld)
     if (present(g)) then
        h%g=g
     else
        h%g=5./3.
     end if
-    call hg_write('>gamma=',1,h%g)
+    call hg_write('  >gamma=',1,h%g)
 
     if (present(cs)) then
        h%cs2=max(1e-6,(cs*h%dv)**2)
     else
        h%cs2=1e-6
     end if
-    call hg_write('>cs (km/s)=',1,sqrt(h%cs2)/h%dv)
-    call hg_write('>cs (sim)=',1,sqrt(h%cs2))
+    call hg_write('  >cs (km/s)=',1,sqrt(h%cs2)/h%dv)
+    call hg_write('  >cs (sim)=',1,sqrt(h%cs2))
 
     if (present(iso)) then
        h%isothermal=iso
@@ -79,7 +82,8 @@ contains
     h%fld(5,:,:,:)=h%cs2*h%fld(1,:,:,:)/(h%g-1.)
 #endif
     
-    call hg_write('>complete',1)
+    call hg_write('  >complete',1)
+    print*,''
 
   end subroutine hg_setup
 
@@ -348,12 +352,12 @@ contains
   subroutine hg_hydro_properties(h)
     implicit none
     class(hydro) :: h
-    call hg_write('>Hydro properties after evolution',1)
-    call hg_array_properties(h%fld(1,1:h%nc,1:h%nc,1:h%nc),'density',hg_verb.ge.1)
-    call hg_array_properties(h%fld(2,1:h%nc,1:h%nc,1:h%nc)/h%fld(1,1:h%nc,1:h%nc,1:h%nc),'x-velocity',hg_verb.ge.2)
-    call hg_array_properties(h%fld(3,1:h%nc,1:h%nc,1:h%nc)/h%fld(1,1:h%nc,1:h%nc,1:h%nc),'y-velocity',hg_verb.ge.2)
-    call hg_array_properties(h%fld(4,1:h%nc,1:h%nc,1:h%nc)/h%fld(1,1:h%nc,1:h%nc,1:h%nc),'z-velocity',hg_verb.ge.2)
-    call hg_array_properties(h%fld(5,1:h%nc,1:h%nc,1:h%nc),'energy',hg_verb.ge.2)
+    call hg_write('      >Hydro properties after evolution',1)
+    call hg_array_properties(h%fld(1,1:h%nc,1:h%nc,1:h%nc),'      density',hg_verb.ge.1)
+    call hg_array_properties(h%fld(2,1:h%nc,1:h%nc,1:h%nc)/h%fld(1,1:h%nc,1:h%nc,1:h%nc),'      x-velocity',hg_verb.ge.2)
+    call hg_array_properties(h%fld(3,1:h%nc,1:h%nc,1:h%nc)/h%fld(1,1:h%nc,1:h%nc,1:h%nc),'      y-velocity',hg_verb.ge.2)
+    call hg_array_properties(h%fld(4,1:h%nc,1:h%nc,1:h%nc)/h%fld(1,1:h%nc,1:h%nc,1:h%nc),'      z-velocity',hg_verb.ge.2)
+    call hg_array_properties(h%fld(5,1:h%nc,1:h%nc,1:h%nc),'      energy',hg_verb.ge.2)
   end subroutine hg_hydro_properties
 
   subroutine hg_array_properties(arr,str,ver)
