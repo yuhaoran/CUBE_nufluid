@@ -244,20 +244,15 @@ contains
     real(h_fpp),allocatable :: slicex(:,:,:,:)[:],slicey(:,:,:,:)[:],slicez(:,:,:,:)[:]
    
     hg_ex=h%nc+2*h%ncb
-    allocate(slicex(5,hg_nfb,hg_ex,hg_ex)[*])
-    allocate(slicey(5,hg_ex,hg_nfb,hg_ex)[*])
-    allocate(slicez(5,hg_ex,hg_ex,hg_nfb)[*])
-
-    !real(kind=h_fpp), codimension[*], save :: slicex(5,1:hg_nfb,1-hg_nfb:hg_nf+hg_nfb,1-hg_nfb:hg_nf+hg_nfb)
-    !real(kind=h_fpp), codimension[*], save :: slicey(5,1-hg_nfb:hg_nf+hg_nfb,1:hg_nfb,1-hg_nfb:hg_nf+hg_nfb)
-    !real(kind=h_fpp), codimension[*], save :: slicez(5,1-hg_nfb:hg_nf+hg_nfb,1-hg_nfb:hg_nf+hg_nfb,1:hg_nfb)
-    
-    !integer :: i
+    allocate(slicex(5,h%ncb,hg_ex,hg_ex)[*])
+    allocate(slicey(5,hg_ex,h%ncb,hg_ex)[*])
+    allocate(slicez(5,hg_ex,hg_ex,h%ncb)[*])
 
     !+x
     slicex=h%fld(:,h%nc-h%ncb+1:h%nc,:,:)
     h%fld(:,:0,:,:)=slicex(:,:,:,:)[image1d(inx,icy,icz)]
     !h%fld(1:5,1-h%ncb:0,1:h%nc,1:h%nc)=h%fld(1:5,h%nc-h%ncb+1:h%nc,1:h%nc,1:h%nc)
+    sync all
     !-x
     slicex=h%fld(:,1:h%ncb,:,:)
     h%fld(:,h%nc+1:,:,:)=slicex(:,:,:,:)[image1d(ipx,icy,icz)]
@@ -268,6 +263,7 @@ contains
     slicey=h%fld(:,:,h%nc-h%ncb+1:h%nc,:)
     h%fld(:,:,:0,:)=slicey(:,:,:,:)[image1d(icx,iny,icz)]
     !h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:0,1:h%nc)=h%fld(1:5,1-h%ncb:h%nc+h%ncb,h%nc-h%ncb+1:h%nc,1:h%nc)
+    sync all
     !-y
     slicey=h%fld(:,:,1:h%ncb,:)
     h%fld(:,:,h%nc+1:,:)=slicey(:,:,:,:)[image1d(icx,ipy,icz)]
@@ -278,6 +274,7 @@ contains
     slicez=h%fld(:,:,:,h%nc-h%ncb+1:h%nc)
     h%fld(:,:,:,:0)=slicez(:,:,:,:)[image1d(icx,icy,inz)]
     !h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,1-h%ncb:0)=h%fld(1:5,1-h%ncb:h%nc+h%ncb,1-h%ncb:h%nc+h%ncb,h%nc-h%ncb+1:h%nc)
+    sync all
     !-z
     slicez=h%fld(:,:,:,1:h%ncb)
     h%fld(:,:,:,h%nc+1:)=slicez(:,:,:,:)[image1d(icx,icy,ipz)]
